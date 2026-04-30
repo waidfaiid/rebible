@@ -70,8 +70,9 @@
           {:else}
             <button
               onclick={onShowTip}
-              class="bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 font-medium"
+              class="bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 font-medium flex items-center justify-center gap-2"
             >
+              <span class="material-icons">lightbulb</span>
               Tipp anzeigen
             </button>
           {/if}
@@ -80,8 +81,9 @@
         <!-- Aufdecken -->
         <button
           onclick={onReveal}
-          class="bg-green-500 text-white px-8 py-4 rounded-lg hover:bg-green-600 font-medium text-lg"
+          class="bg-green-500 text-white px-8 py-4 rounded-lg hover:bg-green-600 font-medium text-lg flex items-center justify-center gap-2"
         >
+          <span class="material-icons">visibility</span>
           Aufdecken
         </button>
       {:else}
@@ -96,26 +98,30 @@
           <div class="grid grid-cols-2 gap-3">
             <button
               onclick={() => onRate(0)}
-              class="bg-red-500 text-white py-3 px-4 rounded-lg hover:bg-red-600 font-medium"
+              class="bg-red-500 text-white py-3 px-4 rounded-lg hover:bg-red-600 font-medium flex items-center justify-center gap-1"
             >
+              <span class="material-icons text-sm">close</span>
               Vergessen
             </button>
             <button
               onclick={() => onRate(1)}
-              class="bg-orange-500 text-white py-3 px-4 rounded-lg hover:bg-orange-600 font-medium"
+              class="bg-orange-500 text-white py-3 px-4 rounded-lg hover:bg-orange-600 font-medium flex items-center justify-center gap-1"
             >
+              <span class="material-icons text-sm">error</span>
               Lückenhaft
             </button>
             <button
               onclick={() => onRate(3)}
-              class="bg-yellow-500 text-white py-3 px-4 rounded-lg hover:bg-yellow-600 font-medium"
+              class="bg-yellow-500 text-white py-3 px-4 rounded-lg hover:bg-yellow-600 font-medium flex items-center justify-center gap-1"
             >
+              <span class="material-icons text-sm">done</span>
               Gut
             </button>
             <button
               onclick={() => onRate(4)}
-              class="bg-green-500 text-white py-3 px-4 rounded-lg hover:bg-green-600 font-medium"
+              class="bg-green-500 text-white py-3 px-4 rounded-lg hover:bg-green-600 font-medium flex items-center justify-center gap-1"
             >
+              <span class="material-icons text-sm">done_all</span>
               Perfekt
             </button>
           </div>

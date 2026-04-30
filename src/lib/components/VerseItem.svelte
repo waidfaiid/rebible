@@ -23,14 +23,14 @@
         onclick={onEdit}
         title="Bearbeiten"
       >
-        ✎
+        <span class="material-icons text-sm">edit</span>
       </button>
       <button
         class="text-gray-500 hover:text-red-600 p-2"
         onclick={onDelete}
         title="Löschen"
       >
-        🗑
+        <span class="material-icons text-sm">delete</span>
       </button>
     </div>
   </div>

@@ -5,6 +5,7 @@ This is a Svelte Kit project for a German Bible verse learning app using spaced 
 
 ## Instructions for AI Assistants
 - Always use Tailwind CSS for styling.
+- Always use Google Material Icons (imported from `https://fonts.googleapis.com/icon?family=Material+Icons`) for all UI icons.
 - Break down UI into reusable Svelte components as much as possible.
 - Always ask questions and explain in non-technical terms, as this project is managed by a non-developer.
 - Always use Dexie for database operations.

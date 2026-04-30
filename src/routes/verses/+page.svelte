@@ -22,19 +22,21 @@
 
 	async function addVerse(stelle: string, text: string, tags: string) {
 		const jetzt = new Date().toISOString();
+		const heute = new Date();
+		heute.setHours(0, 0, 0, 0);
 		const newVerse: Verse = {
 			stelle,
 			text,
 			tags: tags ? tags.split(',').map(t => t.trim()).filter(t => t) : [],
 			interval: 1,
 			easeFactor: 2.5,
-			nextReview: jetzt,
+			nextReview: heute.toISOString(), // Set to today 00:00 so it's due
 			lastReview: undefined,
 			reviewCount: 0
 		};
 
-		await db.verse.add(newVerse);
-		verses.update(v => [...v, { ...newVerse, id: Date.now() }]); // Temp ID, will be updated on reload
+		const id = await db.verse.add(newVerse);
+		verses.update(v => [...v, { ...newVerse, id }]);
 		toastMessage.set('✓ Vers gespeichert');
 		setTimeout(() => toastMessage.set(null), 3000);
 	}

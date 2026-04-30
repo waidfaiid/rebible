@@ -49,28 +49,28 @@
 				class="flex flex-col items-center p-2 text-gray-600 hover:text-blue-600"
 				onclick={() => navigate('/')}
 			>
-				<span class="text-lg">🏠</span>
+				<span class="material-icons">home</span>
 				<span class="text-xs">Heute</span>
 			</button>
 			<button
 				class="flex flex-col items-center p-2 text-gray-600 hover:text-blue-600"
 				onclick={() => navigate('/verses')}
 			>
-				<span class="text-lg">📖</span>
+				<span class="material-icons">auto_stories</span>
 				<span class="text-xs">Verse</span>
 			</button>
 			<button
 				class="flex flex-col items-center p-2 text-gray-600 hover:text-blue-600"
 				onclick={() => navigate('/learn')}
 			>
-				<span class="text-lg">🎓</span>
+				<span class="material-icons">school</span>
 				<span class="text-xs">Lernen</span>
 			</button>
 			<button
 				class="flex flex-col items-center p-2 text-gray-600 hover:text-blue-600"
 				onclick={() => navigate('/settings')}
 			>
-				<span class="text-lg">⚙️</span>
+				<span class="material-icons">settings</span>
 				<span class="text-xs">Einstellungen</span>
 			</button>
 		</div>
