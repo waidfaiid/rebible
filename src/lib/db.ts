@@ -10,6 +10,7 @@ export interface Verse {
   nextReview: string;
   lastReview?: string;
   reviewCount: number;
+  reviewCount2: number;
 }
 
 export class ReBibleDB extends Dexie {
