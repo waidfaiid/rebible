@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ReBible</title>
+  <script src="https://cdn.jsdelivr.net/npm/dexie@3/dist/dexie.min.js"></script>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <header id="app-header">
+    <h1>ReBible</h1>
+    <p id="db-status">Wird geladen…</p>
+  </header>
+
+  <div id="toast"></div>
+
+  <!-- BEARBEITEN MODAL -->
+  <div class="modal-overlay" id="edit-modal">
+    <div class="modal">
+      <h2>Vers bearbeiten</h2>
+      <input type="hidden" id="edit-id" />
+      <div class="form-group">
+        <label>Bibelstelle</label>
+        <div class="stelle-row">
+          <input type="text" id="edit-stelle" placeholder="z.B. Römer 5,4" oninput="editStelleCheck()" />
+          <button id="btn-edit-uebernehmen" onclick="editStelleUebernehmen()" style="display:none;">Übernehmen</button>
+        </div>
+        <div id="edit-stelle-feedback"></div>
+      </div>
+      <div class="form-group">
+        <label>Vers-Text</label>
+        <textarea id="edit-text" style="min-height:120px;"></textarea>
+      </div>
+      <div class="form-group">
+        <label>Tags (kommagetrennt)</label>
+        <input type="text" id="edit-tags" />
+      </div>
+      <div class="modal-buttons">
+        <button class="btn btn-secondary" onclick="editAbbrechen()">Abbrechen</button>
+        <button class="btn btn-primary" onclick="editSpeichern()">Speichern</button>
+      </div>
+    </div>
+  </div>
+
+  <main>
+
+    <!-- HEUTE -->
+    <div id="view-heute" class="view active">
+      <div class="stats-grid">
+        <div class="stat-tile">
+          <div class="number" id="stat-gesamt">0</div>
+          <div class="label">Verse gesamt</div>
+        </div>
+        <div class="stat-tile">
+          <div class="number" id="stat-faellig">0</div>
+          <div class="label">Fällig heute</div>
+        </div>
+        <div class="stat-tile">
+          <div class="number" id="stat-gelernt">0</div>
+          <div class="label">Heute gelernt</div>
+        </div>
+        <div class="stat-tile">
+          <div class="number" id="stat-serie">0</div>
+          <div class="label">Tage in Serie</div>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Bereit zum Lernen?</h2>
+        <p style="margin-bottom:16px; color:#888;">Lerne deine fälligen Verse mit dem Spaced-Repetition-System.</p>
+        <button class="btn btn-primary" onclick="lernStart()">Lernen starten</button>
+      </div>
+    </div>
+
+    <!-- VERSE -->
+    <div id="view-verse" class="view">
+      <!-- EINGABEFORMULAR -->
+      <div class="card">
+        <h2>Vers hinzufügen</h2>
+        <div class="form-group">
+          <label>Bibelstelle</label>
+          <div class="stelle-row">
+            <input type="text" id="input-stelle" placeholder="z.B. Römer 8,28" oninput="stelleCheck()" />
+            <button id="btn-uebernehmen" onclick="stelleUebernehmen()" style="display:none;">Übernehmen</button>
+          </div>
+          <div id="stelle-feedback"></div>
+        </div>
+        <div class="form-group">
+          <label>Vers-Text</label>
+          <textarea id="input-text" style="min-height:120px;" placeholder="Vers-Text eingeben…"></textarea>
+        </div>
+        <div class="form-group">
+          <label>Tags (kommagetrennt)</label>
+          <input type="text" id="input-tags" placeholder="z.B. Glaube, Hoffnung" />
+        </div>
+        <button class="btn btn-primary" onclick="versHinzufuegen()" style="width:100%;">Speichern</button>
+      </div>
+
+      <!-- VERS-LISTE mit FILTER -->
+      <div id="vers-liste"></div>
+    </div>
+
+    <!-- MODI -->
+    <div id="view-modi" class="view">
+      <div class="card">
+        <h2>Lernmodi</h2>
+        <p style="color:var(--muted); margin-bottom:16px;">Wähle wie du lernen möchtest.</p>
+        <button class="btn btn-primary" style="width:100%;" onclick="lernStart()">
+          📋 Standard – Aufdecken & Bewerten
+        </button>
+      </div>
+    </div>
+
+    <!-- EINSTELLUNGEN -->
+    <div id="view-einstellungen" class="view">
+      <div class="card">
+        <h2>Info</h2>
+        <div class="settings-row">
+          <span class="s-label">Version</span>
+          <span class="s-value">1.0</span>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Daten</h2>
+        <div class="settings-row" style="cursor:pointer;">
+          <span class="s-label">Exportieren</span>
+          <span class="s-value">→</span>
+        </div>
+        <div class="settings-row" style="cursor:pointer;">
+          <span class="s-label">Importieren</span>
+          <span class="s-value">→</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- LERNEN -->
+    <div id="view-lernen" class="view">
+      <div class="lern-fertig" id="lern-fertig">
+        <div class="fertig-icon">✓</div>
+        <h2>Alles erledigt!</h2>
+        <p>Du hast alle fälligen Verse für heute gelernt.</p>
+        <button class="btn btn-primary" onclick="showView('heute')">Zurück zur Übersicht</button>
+      </div>
+
+      <div id="lern-inhalt">
+        <div class="lern-topbar">
+          <button class="lern-zurueck" onclick="lernAbbrechen()">←</button>
+          <div class="fortschritt-wrap">
+            <div class="fortschritt-bar" id="lern-bar" style="width:0%"></div>
+          </div>
+          <span id="lern-fortschritt-text" class="lern-zahl">0 / 0</span>
+        </div>
+
+        <div class="lern-stelle-box">
+          <div class="lern-stelle-buch" id="lern-stelle-buch">–</div>
+          <div class="lern-stelle-kapvers" id="lern-stelle-kapvers"></div>
+        </div>
+
+        <button id="btn-tipp" class="btn btn-secondary lern-btn-rand" onclick="tippAnzeigen()">Tipp anzeigen</button>
+        <div id="tipp-inhalt" class="tipp-box"></div>
+
+        <button id="btn-aufdecken" class="btn btn-secondary lern-btn-rand lern-aufdecken-btn" onclick="aufdecken()">Aufdecken</button>
+
+        <div class="lern-text" id="lern-text"></div>
+
+        <div class="bewertung-grid" id="bewertung-grid">
+          <button class="btn btn-vergessen"   onclick="bewerten(0)">Vergessen</button>
+          <button class="btn btn-lueckenhaft" onclick="bewerten(1)">Lückenhaft</button>
+          <button class="btn btn-gut"         onclick="bewerten(3)">Gut</button>
+          <button class="btn btn-perfekt"     onclick="bewerten(4)">Perfekt</button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <nav id="app-nav">
+    <button onclick="showView('heute')" class="active">Heute</button>
+    <button onclick="showView('verse')">Verse</button>
+    <button onclick="showView('modi')">Modi</button>
+    <button onclick="showView('einstellungen')">Info</button>
+  </nav>
+
+  <script src="app.js"></script>
+</body>
+</html>
