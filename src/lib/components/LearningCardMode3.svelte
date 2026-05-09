@@ -61,93 +61,69 @@
   }
 </script>
 
-<div class="h-screen bg-white flex flex-col overflow-hidden">
-  <!-- Fortschrittsbalken + Zurück -->
-  <div class="bg-white border-b border-gray-100 px-4 py-3 shrink-0">
-    <div class="flex justify-between items-center mb-2">
-      <button
-        onclick={onGoBack}
-        class="text-gray-400 hover:text-black p-2 rounded-lg transition-colors duration-200"
-        disabled={!onGoBack}
-      >
-        <span class="material-icons">arrow_back</span>
-      </button>
-      <span class="text-sm font-light text-gray-500">{progress.current} von {progress.total}</span>
+<div class="h-full bg-black flex flex-col overflow-hidden relative">
+  <!-- Top Bar (Progress) -->
+  <div class="bg-black/90 px-3 py-2 shrink-0 flex items-center gap-3 pt-[env(safe-area-inset-top)]">
+    <button
+      onclick={onGoBack}
+      class="text-zinc-400 hover:text-white p-1 rounded-full transition-colors duration-200 flex items-center justify-center active:scale-95"
+      disabled={!onGoBack}
+    >
+      <span class="material-icons text-2xl">chevron_left</span>
+    </button>
+    <div class="flex-1">
+      <div class="w-full bg-zinc-800 rounded-full h-1 overflow-hidden">
+        <div
+          class="bg-red-600 h-full rounded-full transition-all duration-500 ease-out"
+          style="width: {progress.total > 0 ? (progress.current / progress.total) * 100 : 0}%"
+        ></div>
+      </div>
     </div>
-    <div class="w-full bg-gray-100 rounded-full h-1">
-      <div
-        class="bg-black h-1 rounded-full transition-all duration-500"
-        style="width: {progress.total > 0 ? (progress.current / progress.total) * 100 : 0}%"
-      ></div>
-    </div>
+    <span class="text-[10px] font-bold text-zinc-500 tracking-wider w-8 text-right">{progress.current}/{progress.total}</span>
   </div>
 
-  <div class="flex-1 flex flex-col p-4 overflow-y-auto pb-32">
-    <div class="max-w-md w-full mx-auto flex-1 flex flex-col">
+  <!-- Header (Context) -->
+  <div class="px-4 py-2 shrink-0 text-center border-b border-zinc-800">
+    <h2 class="text-xl font-bold text-white truncate flex items-center justify-center gap-2">
+      <span class="material-icons text-zinc-500 text-lg">auto_stories</span>
+      {rangeParts.book} {rangeParts.sub}
+      <span class="text-xs font-bold text-zinc-500 ml-2">{currentIndex + 1} / {verses.length}</span>
+    </h2>
+  </div>
 
+  <!-- Scrollable Answer Area -->
+  <div class="flex-1 overflow-y-auto p-4 flex flex-col">
+    <div class="m-auto w-full max-w-md">
       {#if currentVerse && currentIndex < verses.length}
-        <!-- Frage: nur Buch(bereich) anzeigen -->
-        <div class="text-center mb-6">
-          <div class="text-4xl font-light text-black mb-1">{rangeParts.book}</div>
-          {#if rangeParts.sub}
-            <div class="text-xl font-light text-gray-500">{rangeParts.sub}</div>
-          {/if}
-          <div class="text-xs text-gray-400 font-light mt-2">
-            Vers {currentIndex + 1} von {verses.length}
-          </div>
-        </div>
-
         {#if !showText}
           <!-- Tipp -->
           {#if showTip}
-            <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4 text-center">
-              <div class="text-xs text-amber-600 font-medium mb-1">Tipp – letzte {woerter} Wörter</div>
-              <div class="text-gray-800 font-light italic">{tipp}</div>
+            <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 text-center shadow-sm">
+              <div class="text-[10px] text-zinc-500 font-bold uppercase tracking-wider mb-2">Tipp – letzte {woerter} Wörter</div>
+              <div class="text-white font-medium text-xl">... {tipp}</div>
             </div>
           {/if}
-
-          <!-- Aktions-Buttons -->
-          <div class="space-y-3">
-            {#if !showTip}
-              <button
-                onclick={() => showTip = true}
-                class="w-full bg-gray-100 text-black px-4 py-3 rounded-lg hover:bg-gray-200 font-light transition-colors duration-200 flex items-center justify-center gap-2"
-              >
-                <span class="material-icons text-lg">lightbulb</span>
-                Tipp anzeigen
-              </button>
-            {/if}
-            <button
-              onclick={reveal}
-              class="w-full bg-black text-white px-4 py-3 rounded-lg hover:bg-gray-800 font-light transition-colors duration-200 flex items-center justify-center gap-2"
-            >
-              <span class="material-icons text-lg">visibility</span>
-              Vers aufdecken
-            </button>
-          </div>
-
         {:else}
-          <!-- Antwort: volle Stelle + Text -->
-          <div class="text-center mb-5">
-            <div class="text-lg font-semibold text-black mb-1">
+          <div class="text-center mb-6">
+            <div class="text-2xl font-bold text-white mb-3">
               {stelleParts.book} {stelleParts.chapvers}
             </div>
-            <div class="text-base font-light text-gray-800 leading-relaxed" style="font-size: clamp(0.95rem, 2.2vw, 1.15rem);">
+            <div class="text-white leading-snug font-semibold" style="font-size: clamp(1.25rem, 5vw, 2rem);">
               {currentVerse.text}
             </div>
           </div>
-          <div class="mb-2">
-            <VorlesenButton text={vorlesenText} />
-          </div>
         {/if}
-
       {:else}
         <!-- Alle Verse dieser Gruppe abgeschlossen -->
-        <div class="text-center mt-8">
-          <div class="text-sm font-light text-gray-600 mb-3">Alle Verse in diesem Bereich abgeschlossen.</div>
+        <div class="bg-zinc-900 rounded-3xl shadow-sm border border-zinc-800 p-8 text-center">
+          <div class="text-green-500 mb-4 flex justify-center">
+            <span class="material-icons text-5xl">task_alt</span>
+          </div>
+          <h3 class="text-xl font-bold text-white mb-2">Bereich abgeschlossen</h3>
+          <p class="text-zinc-400 mb-6">Du hast alle Verse in diesem Bereich gelernt.</p>
           <button
             onclick={onShowNext}
-            class="bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 font-light"
+            class="w-full bg-red-600 text-white px-6 py-4 rounded-2xl hover:bg-red-700 active:scale-95 font-bold transition-all duration-200 shadow-sm shadow-red-900/20"
           >
             Nächster Bereich
           </button>
@@ -156,7 +132,32 @@
     </div>
   </div>
 
-  {#if showText && currentVerse && currentIndex < verses.length}
-    <RatingButtons onRate={rate} />
+  <!-- Fixed Bottom Buttons -->
+  {#if currentVerse && currentIndex < verses.length}
+    <div class="shrink-0 p-4 bg-black border-t border-zinc-900 space-y-3 pb-[calc(env(safe-area-inset-bottom)+5rem)]">
+      <div class="max-w-md mx-auto w-full space-y-3">
+        {#if !showText}
+          {#if !showTip}
+            <button
+              onclick={() => showTip = true}
+              class="w-full bg-zinc-900 text-white border border-zinc-800 px-6 py-4 rounded-2xl hover:bg-zinc-800 active:scale-95 font-bold text-lg transition-all duration-200 flex items-center justify-center gap-2 shadow-sm"
+            >
+              <span class="material-icons text-zinc-400">lightbulb</span>
+              Tipp anzeigen
+            </button>
+          {/if}
+          <button
+            onclick={reveal}
+            class="w-full bg-red-600 text-white px-6 py-5 rounded-2xl hover:bg-red-700 active:scale-95 font-bold text-xl transition-all duration-200 flex items-center justify-center gap-2 shadow-sm shadow-red-900/20"
+          >
+            <span class="material-icons">visibility</span>
+            Vers aufdecken
+          </button>
+        {:else}
+          <RatingButtons onRate={rate} />
+          <VorlesenButton text={vorlesenText} />
+        {/if}
+      </div>
+    </div>
   {/if}
 </div>

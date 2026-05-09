@@ -16,11 +16,36 @@
 	showEditModal.subscribe(s => showModal = s);
 	selectedVerse.subscribe(s => selected = s);
 
+	let filterKategorie = $state('all');
+	let allTags = $derived(() => {
+		const tags = new Set<string>();
+		currentVerses.forEach(v => {
+			const tArray = Array.isArray(v.tags) ? v.tags : (v.tags ? v.tags.split(',').map(t=>t.trim()) : []);
+			tArray.forEach(t => { if(t) tags.add(t) });
+		});
+		return Array.from(tags).sort();
+	});
+
+	const ntBooks = ['Matthäus', 'Markus', 'Lukas', 'Johannes', 'Apostelgeschichte', 'Römer', '1. Korinther', '2. Korinther', 'Galater', 'Epheser', 'Philipper', 'Kolosser', '1. Thessalonicher', '2. Thessalonicher', '1. Timotheus', '2. Timotheus', 'Titus', 'Philemon', 'Hebräer', 'Jakobus', '1. Petrus', '2. Petrus', '1. Johannes', '2. Johannes', '3. Johannes', 'Judas', 'Offenbarung'];
+
 	let gefilterteVerse = $derived(() => {
+		let filtered = currentVerses;
+
+		if (filterKategorie === 'AT') {
+			filtered = filtered.filter(v => !ntBooks.some(b => v.stelle.startsWith(b)));
+		} else if (filterKategorie === 'NT') {
+			filtered = filtered.filter(v => ntBooks.some(b => v.stelle.startsWith(b)));
+		} else if (filterKategorie !== 'all') {
+			filtered = filtered.filter(v => {
+				const tags = Array.isArray(v.tags) ? v.tags : (v.tags ? v.tags.split(',').map(t=>t.trim()) : []);
+				return tags.includes(filterKategorie);
+			});
+		}
+
 		const q = suchbegriff.trim().toLowerCase();
-		if (!q) return currentVerses;
-		return currentVerses.filter(v => {
-			const tags = Array.isArray(v.tags) ? v.tags : [v.tags].filter(Boolean);
+		if (!q) return filtered;
+		return filtered.filter(v => {
+			const tags = Array.isArray(v.tags) ? v.tags : (v.tags ? v.tags.split(',').map(t=>t.trim()) : []);
 			return (
 				v.stelle.toLowerCase().includes(q) ||
 				v.text.toLowerCase().includes(q) ||
@@ -82,45 +107,69 @@
 	}
 </script>
 
-<div class="h-screen bg-white flex flex-col overflow-hidden">
-	<!-- Header - Compact -->
-	<div class="px-4 py-3 border-b border-gray-100 shrink-0">
-		<h2 class="text-2xl font-light text-black mb-1">Verse</h2>
-		<p class="text-xs text-gray-500 font-light">Verwalte deine Bibelverse</p>
-	</div>
-
-	<!-- Add Verse Form - Compact -->
-	<div class="px-4 py-3 border-b border-gray-100 shrink-0">
-		<AddVerseForm onAdd={addVerse} />
-	</div>
-
-	<!-- Search Bar -->
-	<div class="px-4 py-2 border-b border-gray-100 shrink-0">
-		<div class="relative">
-			<span class="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg">search</span>
-			<input
-				type="text"
-				placeholder="Suche nach Stelle, Text oder Thema…"
-				bind:value={suchbegriff}
-				class="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm font-light text-black placeholder-gray-400 focus:outline-none focus:border-blue-400 focus:bg-white transition-colors duration-200"
-			/>
-			{#if suchbegriff}
-				<button
-					onclick={() => suchbegriff = ''}
-					class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-black"
-				>
-					<span class="material-icons text-lg">close</span>
-				</button>
-			{/if}
+<div class="h-full bg-black flex flex-col overflow-hidden relative">
+	<!-- Sticky Header: Title + Add Button + Filter/Search -->
+	<div class="sticky top-0 z-20 bg-black/90 backdrop-blur-xl border-b border-zinc-800 px-5 pt-8 pb-3 shrink-0">
+		<div class="flex justify-between items-center mb-3">
+			<h2 class="text-3xl font-bold text-white tracking-tight">Verse</h2>
+			<button
+				onclick={() => {
+					const form = document.getElementById('add-verse-form');
+					if (form) {
+						form.scrollIntoView({ behavior: 'smooth' });
+						setTimeout(() => form.querySelector('input')?.focus(), 300);
+					}
+				}}
+				class="bg-red-600 text-white px-4 py-2 rounded-xl hover:bg-red-700 active:scale-95 transition-all shadow-sm shadow-red-900/20 font-bold flex items-center gap-1"
+			>
+				<span class="material-icons text-xl">add</span>
+				Neuer Vers
+			</button>
 		</div>
-		{#if suchbegriff}
-			<p class="text-xs text-gray-500 font-light mt-1">{gefilterteVerse().length} Treffer</p>
+
+		<div class="flex gap-2">
+			<div class="relative flex-1">
+				<span class="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 text-lg">search</span>
+				<input
+					type="text"
+					placeholder="Suchen…"
+					bind:value={suchbegriff}
+					class="w-full pl-9 pr-8 py-3 bg-zinc-900 border border-zinc-800 rounded-xl text-base font-medium text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-600 transition-all shadow-sm"
+				/>
+				{#if suchbegriff}
+					<button
+						onclick={() => suchbegriff = ''}
+						class="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white active:scale-95 transition-transform"
+					>
+						<span class="material-icons text-lg">cancel</span>
+					</button>
+				{/if}
+			</div>
+			<select
+				bind:value={filterKategorie}
+				class="bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-base font-bold text-white focus:outline-none focus:border-zinc-600 max-w-[140px] appearance-none shadow-sm"
+			>
+				<option value="all">Alle</option>
+				<option value="AT">Altes Testament</option>
+				<option value="NT">Neues Testament</option>
+				{#each allTags() as tag}
+					<option value={tag}>{tag}</option>
+				{/each}
+			</select>
+		</div>
+		{#if suchbegriff || filterKategorie !== 'all'}
+			<p class="text-xs text-zinc-500 font-medium mt-2 px-1">{gefilterteVerse().length} Treffer</p>
 		{/if}
 	</div>
 
-	<!-- Verses List - Scrollable -->
-	<div class="flex-1 overflow-y-auto">
-		<div class="px-4 py-3">
+	<!-- Scrollable Content: Add Form + Verses List -->
+	<div class="flex-1 overflow-y-auto pb-40 scroll-smooth">
+		<div class="px-5 py-4">
+			<!-- Add Verse Form -->
+			<div id="add-verse-form" class="mb-6">
+				<AddVerseForm onAdd={addVerse} />
+			</div>
+
 			<div class="space-y-3">
 				{#each gefilterteVerse() as verse (verse.id)}
 					<VerseItem
@@ -129,12 +178,13 @@
 						onDelete={() => deleteVerse(verse.id!)}
 					/>
 				{:else}
-					<div class="text-center py-8">
-						{#if suchbegriff}
-							<span class="material-icons text-3xl text-gray-300 mb-2">search_off</span>
-							<p class="text-gray-500 font-light text-sm">Keine Verse gefunden für „{suchbegriff}"</p>
+					<div class="text-center py-12 bg-zinc-900 rounded-2xl border border-zinc-800 shadow-sm mt-4">
+						{#if suchbegriff || filterKategorie !== 'all'}
+							<span class="material-icons text-4xl text-zinc-700 mb-3 block">search_off</span>
+							<p class="text-zinc-500 font-medium">Keine Verse gefunden</p>
 						{:else}
-							<p class="text-gray-500 font-light text-sm">Noch keine Verse hinzugefügt</p>
+							<span class="material-icons text-4xl text-zinc-700 mb-3 block">menu_book</span>
+							<p class="text-zinc-500 font-medium">Noch keine Verse hinzugefügt</p>
 						{/if}
 					</div>
 				{/each}

@@ -55,62 +55,65 @@
   }
 </script>
 
-<div class="bg-white border border-gray-100 rounded-2xl p-8 mb-8">
-  <div class="flex items-center gap-3 mb-8">
-    <span class="material-icons text-gray-400 text-2xl">add_circle</span>
-    <h2 class="text-2xl font-light text-black">Neuer Vers</h2>
+<div class="bg-zinc-900 border border-zinc-800 rounded-3xl p-5 shadow-sm">
+  <div class="flex items-center gap-3 mb-4">
+    <div class="bg-zinc-800 text-zinc-300 p-2 rounded-xl">
+      <span class="material-icons text-xl">add</span>
+    </div>
+    <h2 class="text-xl font-bold text-white">Neuer Vers</h2>
   </div>
 
-  <div class="space-y-6">
+  <div class="space-y-3">
     <div>
-      <label class="block text-sm font-light text-gray-700 mb-2">Bibelstelle</label>
+      <label class="block text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1.5 ml-1">Bibelstelle</label>
       <div class="flex gap-2">
         <input
           type="text"
           bind:value={stelleInput}
           oninput={checkStelle}
           placeholder="z.B. Römer 5,4"
-          class="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          class="flex-1 px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-2xl text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-500 transition-all font-medium"
         />
         {#if erkannteStelle}
           <button
             onclick={uebernehmen}
-            class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
+            class="px-4 py-3 bg-green-600 text-white rounded-2xl hover:bg-green-700 active:scale-95 transition-all font-semibold shadow-sm"
           >
-            Übernehmen
+            <span class="material-icons text-lg">check</span>
           </button>
         {/if}
       </div>
       {#if feedback}
-        <div class="mt-1 text-xs {erkannteStelle ? 'text-green-600' : 'text-red-600'} font-light">
-          {feedback}
+        <div class="mt-1.5 ml-1 text-xs {erkannteStelle ? 'text-green-500' : 'text-red-500'} font-medium flex items-center gap-1">
+          <span class="material-icons text-[14px]">{erkannteStelle ? 'check_circle' : 'error'}</span>
+          {feedback.replace('✓ ', '').replace('✗ ', '')}
         </div>
       {/if}
     </div>
 
     <div>
-      <label class="block text-sm font-medium text-gray-700 mb-1">Vers-Text</label>
+      <label class="block text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1.5 ml-1">Vers-Text</label>
       <textarea
         bind:value={textInput}
         placeholder="Gib hier den Vers-Text ein…"
-        rows="4"
-        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+        rows="2"
+        class="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-2xl text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-500 transition-all font-medium resize-none"
       ></textarea>
     </div>
 
     <div>
-      <label class="block text-sm font-medium text-gray-700 mb-1">Tags (kommagetrennt, optional)</label>
+      <label class="block text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1.5 ml-1">Themen (optional)</label>
       <input
         type="text"
         bind:value={tagsInput}
         placeholder="z.B. Gnade, Hoffnung, Mut"
-        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+        class="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-2xl text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-500 transition-all font-medium"
       />
     </div>
 
     <button
       onclick={submit}
-      class="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 px-4 rounded-xl hover:shadow-lg font-bold transition-all duration-200 transform hover:scale-105 flex items-center justify-center gap-2"
+      class="w-full bg-red-600 text-white py-3.5 px-4 rounded-2xl hover:bg-red-700 active:scale-95 font-semibold transition-all duration-200 shadow-sm shadow-red-900/20 flex items-center justify-center gap-2 mt-2"
     >
       <span class="material-icons">save</span>
       Vers speichern

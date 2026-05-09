@@ -336,15 +336,21 @@
 		/>
 	{/if}
 {:else}
-	<div class="min-h-screen flex items-center justify-center">
-		<div class="text-center">
-			<p class="text-gray-600 mb-4">Lade Lernkarten...</p>
-			<button
-				class="bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600"
-				onclick={startLearning}
-			>
-				Start Lernen
-			</button>
+	<div class="h-full bg-black flex items-center justify-center p-5">
+		<div class="bg-zinc-900 rounded-3xl shadow-sm border border-zinc-800 p-8 text-center max-w-sm w-full">
+			<div class="animate-pulse flex flex-col items-center">
+				<div class="bg-zinc-800 text-zinc-400 p-4 rounded-2xl mb-4">
+					<span class="material-icons text-4xl">school</span>
+				</div>
+				<h3 class="text-xl font-bold text-white mb-2">Lade Lernkarten...</h3>
+				<p class="text-zinc-500 mb-6 text-sm">Bereite deine heutige Session vor.</p>
+				<button
+					class="w-full bg-red-600 text-white px-6 py-4 rounded-2xl hover:bg-red-700 active:scale-95 font-semibold transition-all duration-200 shadow-sm shadow-red-900/20"
+					onclick={startLearning}
+				>
+					Manuell starten
+				</button>
+			</div>
 		</div>
 	</div>
 {/if}

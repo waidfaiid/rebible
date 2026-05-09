@@ -24,79 +24,77 @@
   let vorlesenText = $derived(`${verse.stelle} – ${verse.text}`);
 </script>
 
-<div class="h-screen bg-white flex flex-col overflow-hidden">
-  <!-- Fortschrittsbalken + Zurück -->
-  <div class="bg-white border-b border-gray-100 px-4 py-3 shrink-0">
-    <div class="flex justify-between items-center mb-2">
-      <button
-        onclick={onGoBack}
-        class="text-gray-400 hover:text-black p-2 rounded-lg transition-colors duration-200 flex items-center gap-2"
-        disabled={!onGoBack}
-      >
-        <span class="material-icons">arrow_back</span>
-      </button>
-      <span class="text-sm font-light text-gray-500">{progress.current} von {progress.total}</span>
+<div class="h-full bg-black flex flex-col overflow-hidden relative">
+  <!-- Top Bar (Progress) -->
+  <div class="bg-black/90 px-3 py-2 shrink-0 flex items-center gap-3 pt-[env(safe-area-inset-top)]">
+    <button
+      onclick={onGoBack}
+      class="text-zinc-400 hover:text-white p-1 rounded-full transition-colors duration-200 flex items-center justify-center active:scale-95"
+      disabled={!onGoBack}
+    >
+      <span class="material-icons text-2xl">chevron_left</span>
+    </button>
+    <div class="flex-1">
+      <div class="w-full bg-zinc-800 rounded-full h-1 overflow-hidden">
+        <div
+          class="bg-red-600 h-full rounded-full transition-all duration-500 ease-out"
+          style="width: {progress.total > 0 ? (progress.current / progress.total) * 100 : 0}%"
+        ></div>
+      </div>
     </div>
-    <div class="w-full bg-gray-100 rounded-full h-1">
-      <div
-        class="bg-black h-1 rounded-full transition-all duration-500"
-        style="width: {progress.total > 0 ? (progress.current / progress.total) * 100 : 0}%"
-      ></div>
-    </div>
+    <span class="text-[10px] font-bold text-zinc-500 tracking-wider w-8 text-right">{progress.current}/{progress.total}</span>
   </div>
 
-  <!-- Karteninhalt -->
-  <div class="flex-1 flex flex-col p-4 pb-32 overflow-y-auto">
-    <div class="max-w-md w-full mx-auto flex-1 flex flex-col">
-      <!-- Bibelstelle (Frage) -->
-      <div class="mb-6 text-center">
-        <div class="text-4xl font-light text-black mb-2">{stelleParts.book}</div>
-        <div class="text-xl font-light text-gray-600">{stelleParts.chapvers}</div>
+  <!-- Header (Context) -->
+  <div class="px-4 py-2 shrink-0 text-center border-b border-zinc-800">
+    <h2 class="text-xl font-bold text-white truncate flex items-center justify-center gap-2">
+      <span class="material-icons text-zinc-500 text-lg">format_quote</span>
+      {stelleParts.book} {stelleParts.chapvers}
+    </h2>
+  </div>
+
+  <!-- Scrollable Answer Area -->
+  <div class="flex-1 overflow-y-auto p-4 flex flex-col">
+    {#if !showText}
+      {#if showTip}
+        <div class="m-auto bg-zinc-900 border border-zinc-800 rounded-2xl p-5 text-center shadow-sm w-full max-w-md">
+          <div class="text-[10px] text-zinc-500 font-bold uppercase tracking-wider mb-2">Tipp</div>
+          <div class="text-white font-medium text-xl">... {tipp}</div>
+        </div>
+      {/if}
+    {:else}
+      <div class="m-auto w-full max-w-md">
+        <div class="text-center text-white leading-snug font-semibold" style="font-size: clamp(1.25rem, 5vw, 2rem);">
+          {verse.text}
+        </div>
       </div>
+    {/if}
+  </div>
 
+  <!-- Fixed Bottom Buttons -->
+  <div class="shrink-0 p-4 bg-black border-t border-zinc-900 space-y-3 pb-[calc(env(safe-area-inset-bottom)+5rem)]">
+    <div class="max-w-md mx-auto w-full space-y-3">
       {#if !showText}
-        <!-- Tipp -->
-        {#if showTip}
-          <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4 text-center">
-            <div class="text-xs text-amber-600 font-medium mb-1">Tipp – letzte {woerter} Wörter</div>
-            <div class="text-gray-800 font-light italic">{tipp}</div>
-          </div>
-        {/if}
-
-        <div class="space-y-3">
-          {#if !showTip}
-            <button
-              onclick={onShowTip}
-              class="w-full bg-gray-100 text-black px-4 py-3 rounded-lg hover:bg-gray-200 font-light transition-colors duration-200 flex items-center justify-center gap-2"
-            >
-              <span class="material-icons text-lg">lightbulb</span>
-              Tipp anzeigen
-            </button>
-          {/if}
+        {#if !showTip}
           <button
-            onclick={onReveal}
-            class="w-full bg-black text-white px-4 py-3 rounded-lg hover:bg-gray-800 font-light transition-colors duration-200 flex items-center justify-center gap-2"
+            onclick={onShowTip}
+            class="w-full bg-zinc-900 text-white border border-zinc-800 px-6 py-4 rounded-2xl hover:bg-zinc-800 active:scale-95 font-bold text-lg transition-all duration-200 flex items-center justify-center gap-2 shadow-sm"
           >
-            <span class="material-icons text-lg">visibility</span>
-            Aufdecken
+            <span class="material-icons text-zinc-400">lightbulb</span>
+            Tipp anzeigen
           </button>
-        </div>
-
+        {/if}
+        <button
+          onclick={onReveal}
+          class="w-full bg-red-600 text-white px-6 py-5 rounded-2xl hover:bg-red-700 active:scale-95 font-bold text-xl transition-all duration-200 flex items-center justify-center gap-2 shadow-sm shadow-red-900/20"
+        >
+          <span class="material-icons">visibility</span>
+          Aufdecken
+        </button>
       {:else}
-        <!-- Vers-Text (Antwort) -->
-        <div class="text-center mb-5">
-          <div class="text-base font-light text-black leading-relaxed max-w-2xl mx-auto" style="font-size: clamp(1rem, 2.2vw, 1.25rem);">
-            {verse.text}
-          </div>
-        </div>
-        <div class="mb-2">
-          <VorlesenButton text={vorlesenText} />
-        </div>
+        <RatingButtons {onRate} />
+        <VorlesenButton text={vorlesenText} />
       {/if}
     </div>
   </div>
-
-  {#if showText}
-    <RatingButtons {onRate} />
-  {/if}
 </div>

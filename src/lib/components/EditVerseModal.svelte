@@ -62,65 +62,71 @@
 </script>
 
 {#if show}
-  <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-    <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
-      <h2 class="text-xl font-semibold mb-4">Vers bearbeiten</h2>
+  <div class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <div class="bg-zinc-900 rounded-3xl shadow-2xl border border-zinc-800 max-w-md w-full overflow-hidden">
+      <div class="px-6 py-5 border-b border-zinc-800 flex justify-between items-center bg-zinc-900">
+        <h2 class="text-xl font-bold text-white">Vers bearbeiten</h2>
+        <button onclick={onCancel} class="text-zinc-500 hover:text-white active:scale-95 transition-all p-1 rounded-full hover:bg-zinc-800">
+          <span class="material-icons">close</span>
+        </button>
+      </div>
 
-      <div class="space-y-4">
+      <div class="p-6 space-y-5">
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Bibelstelle</label>
+          <label class="block text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1.5 ml-1">Bibelstelle</label>
           <div class="flex gap-2">
             <input
               type="text"
               bind:value={stelleInput}
               oninput={checkStelle}
-              class="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              class="flex-1 px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-2xl text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-500 transition-all font-medium"
             />
             {#if erkannteStelle}
               <button
                 onclick={uebernehmen}
-                class="px-3 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 text-sm"
+                class="px-4 py-3 bg-green-600 text-white rounded-2xl hover:bg-green-700 active:scale-95 transition-all font-semibold shadow-sm"
               >
-                Übernehmen
+                <span class="material-icons text-lg">check</span>
               </button>
             {/if}
           </div>
           {#if feedback}
-            <div class="mt-1 text-sm {erkannteStelle ? 'text-green-600' : 'text-red-600'}">
-              {feedback}
+            <div class="mt-2 ml-1 text-xs {erkannteStelle ? 'text-green-500' : 'text-red-500'} font-medium flex items-center gap-1">
+              <span class="material-icons text-[14px]">{erkannteStelle ? 'check_circle' : 'error'}</span>
+              {feedback.replace('✓ ', '').replace('✗ ', '')}
             </div>
           {/if}
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Vers-Text</label>
+          <label class="block text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1.5 ml-1">Vers-Text</label>
           <textarea
             bind:value={textInput}
-            rows="3"
-            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            rows="4"
+            class="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-2xl text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-500 transition-all font-medium resize-none"
           ></textarea>
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Tags</label>
+          <label class="block text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1.5 ml-1">Themen</label>
           <input
             type="text"
             bind:value={tagsInput}
-            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            class="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-2xl text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-500 transition-all font-medium"
           />
         </div>
       </div>
 
-      <div class="flex gap-3 mt-6">
+      <div class="p-6 bg-zinc-900 border-t border-zinc-800 flex gap-3">
         <button
           onclick={onCancel}
-          class="flex-1 px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+          class="flex-1 px-4 py-3.5 bg-zinc-800 border border-zinc-700 text-white rounded-2xl hover:bg-zinc-700 active:scale-95 font-semibold transition-all shadow-sm"
         >
           Abbrechen
         </button>
         <button
           onclick={submit}
-          class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+          class="flex-1 px-4 py-3.5 bg-red-600 text-white rounded-2xl hover:bg-red-700 active:scale-95 font-semibold transition-all shadow-sm shadow-red-900/20"
         >
           Speichern
         </button>

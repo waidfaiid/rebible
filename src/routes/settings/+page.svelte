@@ -9,8 +9,17 @@
 	// Einstellungs-Werte aus Stores lesen
 	let tippAnzahl = $state(5);
 	let geschwindigkeit = $state(1.0);
+	let maxWordsMode2 = $state(50);
 	tippWoerter.subscribe(v => tippAnzahl = v);
 	sprechRate.subscribe(v => geschwindigkeit = v);
+
+	import { onMount } from 'svelte';
+	onMount(() => {
+		const storedMaxWords = localStorage.getItem('rebible_max_words_mode2');
+		if (storedMaxWords) {
+			maxWordsMode2 = parseInt(storedMaxWords, 10);
+		}
+	});
 
 	function showToast(msg: string, durationMs = 3000) {
 		toastMessage.set(msg);
@@ -76,29 +85,30 @@
 	}
 </script>
 
-<div class="h-screen bg-white flex flex-col overflow-hidden">
+<div class="h-full bg-black flex flex-col overflow-hidden relative">
 	<!-- Header -->
-	<div class="px-4 py-3 border-b border-gray-100 shrink-0">
-		<h2 class="text-2xl font-light text-black mb-1">Einstellungen</h2>
-		<p class="text-xs text-gray-500 font-light">Daten & App-Konfiguration</p>
+	<div class="px-5 pt-8 pb-4 shrink-0 bg-black z-10">
+		<h2 class="text-3xl font-bold text-white tracking-tight">Einstellungen</h2>
 	</div>
 
 	<!-- Content -->
-	<div class="flex-1 px-4 py-4 overflow-y-auto pb-20">
-		<div class="max-w-md mx-auto space-y-5">
+	<div class="flex-1 px-5 py-2 overflow-y-auto pb-40">
+		<div class="max-w-md mx-auto space-y-4">
 
 			<!-- Lern-Einstellungen -->
-			<div class="border border-gray-200 rounded-xl p-4 space-y-5">
-				<div class="flex items-center gap-3 mb-1">
-					<span class="material-icons text-gray-600">tune</span>
-					<div class="font-medium text-sm text-black">Lern-Einstellungen</div>
+			<div class="bg-zinc-900 rounded-3xl shadow-sm border border-zinc-800 p-6 space-y-6">
+				<div class="flex items-center gap-3 mb-2">
+					<div class="bg-zinc-800 text-zinc-300 p-2 rounded-xl">
+						<span class="material-icons text-xl">tune</span>
+					</div>
+					<h3 class="font-bold text-white text-lg">Lern-Einstellungen</h3>
 				</div>
 
 				<!-- Tipp-Wörter -->
 				<div>
-					<div class="flex justify-between items-center mb-2">
-						<label class="text-sm font-light text-black" for="tipp-slider">Tipp – letzte Wörter anzeigen</label>
-						<span class="text-sm font-medium text-blue-600 min-w-6 text-right">{tippAnzahl}</span>
+					<div class="flex justify-between items-center mb-3">
+						<label class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider" for="tipp-slider">Tipp-Länge (Wörter)</label>
+						<span class="bg-zinc-800 text-white px-3 py-1 rounded-full text-sm font-bold">{tippAnzahl}</span>
 					</div>
 					<input
 						id="tipp-slider"
@@ -108,20 +118,45 @@
 						step="1"
 						bind:value={tippAnzahl}
 						oninput={() => tippWoerter.set(tippAnzahl)}
-						class="w-full accent-blue-600"
+						class="w-full accent-red-600 h-2 bg-zinc-800 rounded-lg appearance-none cursor-pointer"
 					/>
-					<div class="flex justify-between text-xs text-gray-400 mt-1 font-light">
-						<span>2 Wörter</span>
-						<span>12 Wörter</span>
+					<div class="flex justify-between text-xs text-zinc-500 mt-2 font-medium">
+						<span>Kurz (2)</span>
+						<span>Lang (12)</span>
 					</div>
+				</div>
+
+				<div class="h-px bg-zinc-800 w-full my-6"></div>
+
+				<!-- Max Wörter Modus 2 -->
+				<div>
+					<div class="flex justify-between items-center mb-3">
+						<label class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider" for="max-words-slider">Max. Wörter (Modus Stelle)</label>
+						<span class="bg-zinc-800 text-white px-3 py-1 rounded-full text-sm font-bold">{maxWordsMode2}</span>
+					</div>
+					<input
+						id="max-words-slider"
+						type="range"
+						min="10"
+						max="200"
+						step="1"
+						bind:value={maxWordsMode2}
+						oninput={() => localStorage.setItem('rebible_max_words_mode2', maxWordsMode2.toString())}
+						class="w-full accent-red-600 h-2 bg-zinc-800 rounded-lg appearance-none cursor-pointer"
+					/>
+					<div class="flex justify-between text-xs text-zinc-500 mt-2 font-medium">
+						<span>Kurz (10)</span>
+						<span>Lang (200)</span>
+					</div>
+					<p class="text-xs text-zinc-500 mt-3 font-medium">Kürzt lange Verse in der Frage-Ansicht nach dieser Anzahl an Wörtern.</p>
 				</div>
 
 				<!-- Sprechgeschwindigkeit -->
 				<div>
-					<div class="flex justify-between items-center mb-2">
-						<label class="text-sm font-light text-black" for="speech-slider">Vorlesen – Sprechgeschwindigkeit</label>
-						<span class="text-sm font-medium text-blue-600 min-w-10 text-right">
-							{geschwindigkeit < 0.8 ? 'Langsam' : geschwindigkeit > 1.4 ? 'Schnell' : 'Normal'} ({geschwindigkeit.toFixed(1)}×)
+					<div class="flex justify-between items-center mb-3">
+						<label class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider" for="speech-slider">Sprechgeschwindigkeit</label>
+						<span class="bg-zinc-800 text-white px-3 py-1 rounded-full text-sm font-bold">
+							{geschwindigkeit.toFixed(1)}×
 						</span>
 					</div>
 					<input
@@ -132,106 +167,105 @@
 						step="0.1"
 						bind:value={geschwindigkeit}
 						oninput={() => sprechRate.set(geschwindigkeit)}
-						class="w-full accent-blue-600"
+						class="w-full accent-red-600 h-2 bg-zinc-800 rounded-lg appearance-none cursor-pointer"
 					/>
-					<div class="flex justify-between text-xs text-gray-400 mt-1 font-light">
-						<span>Langsam (0.5×)</span>
-						<span>Schnell (2.0×)</span>
+					<div class="flex justify-between text-xs text-zinc-500 mt-2 font-medium">
+						<span>Langsam</span>
+						<span>Schnell</span>
 					</div>
 				</div>
 			</div>
 
-			<!-- Trennlinie -->
-			<div class="border-t border-gray-100"></div>
-
-			<!-- Daten exportieren -->
-			<div class="border border-gray-200 rounded-xl p-4">
-				<div class="flex items-center gap-3 mb-3">
-					<span class="material-icons text-blue-600">download</span>
-					<div>
-						<div class="font-medium text-sm text-black">Verse exportieren</div>
-						<div class="text-xs text-gray-500 font-light">Alle Verse als JSON-Datei speichern</div>
+			<!-- Datenverwaltung -->
+			<div class="bg-zinc-900 rounded-3xl shadow-sm border border-zinc-800 p-6 space-y-4">
+				<div class="flex items-center gap-3 mb-2">
+					<div class="bg-zinc-800 text-zinc-300 p-2 rounded-xl">
+						<span class="material-icons text-xl">storage</span>
 					</div>
+					<h3 class="font-bold text-white text-lg">Datenverwaltung</h3>
 				</div>
+
+				<!-- Daten exportieren -->
 				<button
 					onclick={exportDaten}
-					class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 px-4 rounded-lg font-light text-sm transition-colors duration-200"
+					class="w-full bg-zinc-800 hover:bg-zinc-700 active:scale-95 text-white py-4 px-4 rounded-2xl font-semibold transition-all duration-200 flex items-center justify-between border border-zinc-700"
 				>
-					Als Datei exportieren
-				</button>
-			</div>
-
-			<!-- Daten importieren -->
-			<div class="border border-gray-200 rounded-xl p-4">
-				<div class="flex items-center gap-3 mb-3">
-					<span class="material-icons text-green-600">upload</span>
-					<div>
-						<div class="font-medium text-sm text-black">Verse importieren</div>
-						<div class="text-xs text-gray-500 font-light">Verse aus einer JSON-Datei hinzufügen</div>
+					<div class="flex items-center gap-3">
+						<span class="material-icons text-zinc-400">download</span>
+						<div class="text-left">
+							<div class="text-sm">Verse exportieren</div>
+							<div class="text-[10px] text-zinc-500 font-medium uppercase tracking-wider">Als JSON-Datei speichern</div>
+						</div>
 					</div>
-				</div>
-				<label class="block">
-					<span class="sr-only">JSON-Datei auswählen</span>
+					<span class="material-icons text-zinc-600">chevron_right</span>
+				</button>
+
+				<!-- Daten importieren -->
+				<label class="w-full bg-zinc-800 hover:bg-zinc-700 active:scale-95 text-white py-4 px-4 rounded-2xl font-semibold transition-all duration-200 flex items-center justify-between border border-zinc-700 cursor-pointer">
+					<div class="flex items-center gap-3">
+						<span class="material-icons text-zinc-400">upload</span>
+						<div class="text-left">
+							<div class="text-sm">Verse importieren</div>
+							<div class="text-[10px] text-zinc-500 font-medium uppercase tracking-wider">Aus JSON-Datei laden</div>
+						</div>
+					</div>
+					<span class="material-icons text-zinc-600">chevron_right</span>
 					<input
 						type="file"
 						accept=".json"
 						onchange={importDaten}
-						class="block w-full text-sm text-gray-600 font-light
-							file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0
-							file:text-sm file:font-medium file:bg-green-50 file:text-green-700
-							hover:file:bg-green-100 cursor-pointer"
+						class="hidden"
 					/>
 				</label>
-			</div>
 
-			<!-- Testdaten -->
-			<div class="border border-gray-200 rounded-xl p-4">
-				<div class="flex items-center gap-3 mb-3">
-					<span class="material-icons text-purple-600">science</span>
-					<div>
-						<div class="font-medium text-sm text-black">Testdaten laden</div>
-						<div class="text-xs text-gray-500 font-light">8 Beispielverse laden (ersetzt alle vorhandenen Verse)</div>
-					</div>
-				</div>
+				<!-- Testdaten -->
 				<button
 					onclick={testdatenLaden}
-					class="w-full bg-purple-50 hover:bg-purple-100 text-purple-800 border border-purple-200 py-2.5 px-4 rounded-lg font-light text-sm transition-colors duration-200"
+					class="w-full bg-zinc-800 hover:bg-zinc-700 active:scale-95 text-white py-4 px-4 rounded-2xl font-semibold transition-all duration-200 flex items-center justify-between border border-zinc-700"
 				>
-					Beispielverse laden
+					<div class="flex items-center gap-3">
+						<span class="material-icons text-zinc-400">science</span>
+						<div class="text-left">
+							<div class="text-sm">Testdaten laden</div>
+							<div class="text-[10px] text-zinc-500 font-medium uppercase tracking-wider">Ersetzt aktuelle Verse</div>
+						</div>
+					</div>
+					<span class="material-icons text-zinc-600">chevron_right</span>
 				</button>
 			</div>
 
-			<!-- Alle Daten löschen -->
-			<div class="border border-red-200 rounded-xl p-4">
-				<div class="flex items-center gap-3 mb-3">
-					<span class="material-icons text-red-500">delete_forever</span>
-					<div>
-						<div class="font-medium text-sm text-black">Alle Verse löschen</div>
-						<div class="text-xs text-gray-500 font-light">Diese Aktion kann nicht rückgängig gemacht werden</div>
+			<!-- Gefahrenzone -->
+			<div class="bg-zinc-900 rounded-3xl shadow-sm border border-red-900/30 p-6">
+				<div class="flex items-center gap-3 mb-4">
+					<div class="bg-red-900/20 text-red-500 p-2 rounded-xl">
+						<span class="material-icons text-xl">warning</span>
 					</div>
+					<h3 class="font-bold text-red-500 text-lg">Gefahrenzone</h3>
 				</div>
+
 				{#if !loeschBestaetigung}
 					<button
 						onclick={() => loeschBestaetigung = true}
-						class="w-full bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 py-2.5 px-4 rounded-lg font-light text-sm transition-colors duration-200"
+						class="w-full bg-red-900/20 hover:bg-red-900/40 active:scale-95 text-red-500 border border-red-900/30 py-4 px-4 rounded-2xl font-semibold transition-all duration-200 flex items-center justify-center gap-2"
 					>
-						Alle Daten löschen
+						<span class="material-icons">delete_forever</span>
+						Alle Verse löschen
 					</button>
 				{:else}
-					<div class="space-y-2">
-						<p class="text-xs text-red-600 font-medium text-center">Wirklich alle Verse unwiderruflich löschen?</p>
-						<div class="grid grid-cols-2 gap-2">
+					<div class="bg-red-900/20 p-4 rounded-2xl border border-red-900/30">
+						<p class="text-sm text-red-400 font-semibold text-center mb-4">Wirklich alle Verse unwiderruflich löschen?</p>
+						<div class="grid grid-cols-2 gap-3">
 							<button
 								onclick={() => loeschBestaetigung = false}
-								class="bg-gray-100 hover:bg-gray-200 text-black py-2.5 px-4 rounded-lg font-light text-sm transition-colors duration-200"
+								class="bg-zinc-800 hover:bg-zinc-700 text-white py-3 px-4 rounded-xl font-semibold transition-all duration-200 border border-zinc-700"
 							>
 								Abbrechen
 							</button>
 							<button
 								onclick={alleDatenLoeschen}
-								class="bg-red-600 hover:bg-red-700 text-white py-2.5 px-4 rounded-lg font-light text-sm transition-colors duration-200"
+								class="bg-red-600 hover:bg-red-700 text-white py-3 px-4 rounded-xl font-semibold transition-all duration-200 shadow-sm shadow-red-900/20"
 							>
-								Ja, löschen
+								Löschen
 							</button>
 						</div>
 					</div>

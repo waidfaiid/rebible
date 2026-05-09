@@ -73,74 +73,82 @@
 	}
 </script>
 
-<div class="min-h-screen bg-white flex flex-col">
-	<!-- Header Section - Compact -->
-	<div class="px-4 py-3">
-		<h2 class="text-2xl font-light text-black mb-1">Heute</h2>
-		<p class="text-xs text-gray-500 font-light">Dein Lernfortschritt</p>
+<div class="min-h-screen bg-black flex flex-col pb-20 pt-[env(safe-area-inset-top)]">
+	<!-- Header Section -->
+	<div class="px-5 pt-8 pb-2">
+		<h1 class="text-4xl font-black text-red-600 tracking-tighter">ReBible</h1>
 	</div>
 
-	<!-- Stats Section - Compact -->
-	<div class="px-4 mb-3">
+	<!-- Stats Section -->
+	<div class="px-4 mt-2 mb-4">
 		<StatsGrid stats={$stats} />
 	</div>
 
-	<!-- Main learning button - Compact -->
-	<div class="px-4 mb-3">
+	<!-- Main learning button -->
+	<div class="px-4 mb-4">
 		<button
 			onclick={() => startLearning('gemischt')}
-			class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-4 px-4 rounded-xl transition-colors duration-300 flex items-center justify-center gap-2 text-base"
+			class="w-full bg-red-600 hover:bg-red-700 active:bg-red-800 text-white font-semibold py-4 px-5 rounded-2xl shadow-sm transition-all duration-200 flex items-center justify-between group"
 		>
-			<span class="material-icons text-xl">play_arrow</span>
-			Lernen Starten
+			<div class="flex items-center gap-3">
+				<div class="bg-black/20 p-2 rounded-xl">
+					<span class="material-icons text-white">play_arrow</span>
+				</div>
+				<div class="text-left">
+					<div class="text-lg">Tägliches Training</div>
+					<div class="text-red-100 text-xs font-normal">Dein personalisierter Lernplan</div>
+				</div>
+			</div>
+			<span class="material-icons text-white/70 group-hover:translate-x-1 transition-transform">arrow_forward_ios</span>
 		</button>
 	</div>
 
-	<!-- Learning mode buttons - Fill remaining space -->
-	<div class="flex-1 px-4 pb-2">
-		<div class="grid grid-cols-2 gap-3 h-full">
+	<!-- Learning mode buttons -->
+	<div class="px-4 flex-1">
+		<h3 class="text-xs font-semibold text-zinc-500 mb-3 px-1 uppercase tracking-wider">Gezieltes Lernen</h3>
+		<div class="grid grid-cols-2 gap-3">
 			<button
 				onclick={() => startLearning('stelle')}
-				class="bg-white border border-gray-200 hover:border-blue-300 hover:bg-blue-50 text-black py-3 px-3 rounded-lg transition-colors duration-300 flex flex-col justify-center items-center"
+				class="bg-zinc-900 p-4 rounded-2xl shadow-sm border border-zinc-800 hover:border-zinc-700 active:scale-95 transition-all duration-200 flex flex-col items-start text-left"
 			>
-				<div class="flex justify-center mb-2 text-blue-600">
-					<span class="material-icons text-xl">bookmark</span>
+				<div class="text-white mb-2">
+					<span class="material-icons">format_quote</span>
 				</div>
-				<div class="font-medium text-xs text-center leading-tight">Was steht geschrieben?</div>
-				<div class="text-xs text-gray-500 mt-1 text-center">Stellen zu Versen</div>
+				<div class="font-bold text-white mb-1 text-lg">Text</div>
+				<div class="text-[11px] text-zinc-400 font-medium leading-snug">Trainiere den Verstext zur Bibelstelle</div>
 			</button>
 
 			<button
 				onclick={() => startLearning('vers')}
-				class="bg-white border border-gray-200 hover:border-blue-300 hover:bg-blue-50 text-black py-3 px-3 rounded-lg transition-colors duration-300 flex flex-col justify-center items-center"
+				class="bg-zinc-900 p-4 rounded-2xl shadow-sm border border-zinc-800 hover:border-zinc-700 active:scale-95 transition-all duration-200 flex flex-col items-start text-left"
 			>
-				<div class="flex justify-center mb-2 text-blue-600">
-					<span class="material-icons text-xl">location_on</span>
+				<div class="text-white mb-2">
+					<span class="material-icons">explore</span>
 				</div>
-				<div class="font-medium text-xs text-center leading-tight">Wo steht geschrieben?</div>
-				<div class="text-xs text-gray-500 mt-1 text-center">Verse zu Stellen</div>
+				<div class="font-bold text-white mb-1 text-lg">Stelle</div>
+				<div class="text-[11px] text-zinc-400 font-medium leading-snug">Trainiere die Bibelstelle zum Verstext</div>
 			</button>
 
 			<button
 				onclick={() => startLearning('buch')}
-				class="bg-white border border-gray-200 hover:border-blue-300 hover:bg-blue-50 text-black py-3 px-3 rounded-lg transition-colors duration-300 flex flex-col justify-center items-center"
+				class="bg-zinc-900 p-4 rounded-2xl shadow-sm border border-zinc-800 hover:border-zinc-700 active:scale-95 transition-all duration-200 flex flex-col items-start text-left"
 			>
-				<div class="flex justify-center mb-2 text-blue-600">
-					<span class="material-icons text-xl">library_books</span>
+				<div class="text-white mb-2">
+					<span class="material-icons">auto_stories</span>
 				</div>
-				<div class="font-medium text-xs text-center leading-tight">Was steht in…?</div>
-				<div class="text-xs text-gray-500 mt-1 text-center">Verse in Büchern</div>
+				<div class="font-bold text-white mb-1 text-lg">Buch</div>
+				<div class="text-[11px] text-zinc-400 font-medium leading-snug">Vertiefe die Verse im Kontext des Bibelbuchs</div>
 			</button>
 
 			<button
 				onclick={() => startLearning('thema')}
-				class="bg-white border border-gray-200 hover:border-blue-300 hover:bg-blue-50 text-black py-3 px-3 rounded-lg transition-colors duration-300 flex flex-col justify-center items-center"
+				class="bg-zinc-900 p-4 rounded-2xl shadow-sm border border-zinc-800 hover:border-zinc-700 active:scale-95 transition-all duration-200 flex flex-col items-start text-left"
 			>
-				<div class="flex justify-center mb-2 text-blue-600">
-					<span class="material-icons text-xl">label</span>
+				<div class="text-white mb-2">
+					<span class="material-icons">category</span>
 				</div>
-				<div class="font-medium text-xs text-center leading-tight">Was sagt die Schrift zu…?</div>
-				<div class="text-xs text-gray-500 mt-1 text-center">Verse zu Themen</div>
+				<div class="font-bold text-white mb-1 text-lg">Thema</div>
+				<div class="text-[11px] text-zinc-400 font-medium leading-snug">Vertiefe gezielt Verse zu einem bestimmten Thema</div>
 			</button>
 		</div>
 	</div>

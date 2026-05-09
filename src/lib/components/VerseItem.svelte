@@ -4,36 +4,38 @@
   let { verse, onEdit, onDelete }: { verse: Verse; onEdit: () => void; onDelete: () => void } = $props();
 </script>
 
-<div class="bg-white border border-gray-100 rounded-2xl p-6 mb-4 hover:border-gray-200 transition-colors duration-300">
-  <div class="flex justify-between items-start">
-    <div class="flex-1">
-      <div class="flex items-center gap-3 mb-3">
-        <span class="material-icons text-gray-400 text-xl">bookmark</span>
-        <span class="text-black font-light text-lg">{verse.stelle}</span>
+<div class="bg-zinc-900 rounded-3xl p-4 shadow-sm border border-zinc-800 mb-3">
+  <div class="flex justify-between items-start gap-3">
+    <div class="flex-1 min-w-0">
+      <div class="flex items-center gap-2 mb-2">
+        <div class="bg-zinc-800 text-zinc-400 p-1.5 rounded-lg flex-shrink-0">
+          <span class="material-icons text-[16px]">menu_book</span>
+        </div>
+        <span class="text-white font-bold text-lg truncate">{verse.stelle}</span>
       </div>
-      <div class="text-gray-700 leading-relaxed text-base font-light mb-4 ml-8">{verse.text}</div>
+      <div class="text-zinc-300 leading-relaxed text-sm font-medium mb-3 pl-9">{verse.text}</div>
       {#if verse.tags && (Array.isArray(verse.tags) ? verse.tags.length > 0 : verse.tags.trim())}
-        <div class="flex flex-wrap gap-2 ml-8">
+        <div class="flex flex-wrap gap-1.5 pl-9">
           {#each Array.isArray(verse.tags) ? verse.tags : verse.tags.split(',').map(t => t.trim()) as tag}
-            <span class="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-xs font-light border border-gray-200">{tag}</span>
+            <span class="bg-zinc-800 text-zinc-400 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider">{tag}</span>
           {/each}
         </div>
       {/if}
     </div>
-    <div class="flex gap-1 ml-4">
+    <div class="flex flex-col gap-2 flex-shrink-0">
       <button
-        class="text-gray-400 hover:text-black p-2 rounded-lg transition-colors duration-200"
+        class="bg-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-700 p-2.5 rounded-xl transition-all active:scale-95"
         onclick={onEdit}
         title="Bearbeiten"
       >
-        <span class="material-icons">edit</span>
+        <span class="material-icons text-[18px]">edit</span>
       </button>
       <button
-        class="text-gray-400 hover:text-red-600 p-2 rounded-lg transition-colors duration-200"
+        class="bg-zinc-800 text-zinc-400 hover:text-red-500 hover:bg-red-900/30 p-2.5 rounded-xl transition-all active:scale-95"
         onclick={onDelete}
         title="Löschen"
       >
-        <span class="material-icons">delete</span>
+        <span class="material-icons text-[18px]">delete</span>
       </button>
     </div>
   </div>
