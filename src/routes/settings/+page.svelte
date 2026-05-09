@@ -1,11 +1,16 @@
 <script lang="ts">
 	import { db } from '$lib/db';
-	import { verses, toastMessage } from '$lib/stores';
+	import { verses, toastMessage, tippWoerter, sprechRate } from '$lib/stores';
 	import { betaVerses } from '$lib/betaVerse';
 	import type { Verse } from '$lib/db';
 
-	let tagliches_ziel = $state(10);
 	let loeschBestaetigung = $state(false);
+
+	// Einstellungs-Werte aus Stores lesen
+	let tippAnzahl = $state(5);
+	let geschwindigkeit = $state(1.0);
+	tippWoerter.subscribe(v => tippAnzahl = v);
+	sprechRate.subscribe(v => geschwindigkeit = v);
 
 	function showToast(msg: string, durationMs = 3000) {
 		toastMessage.set(msg);
@@ -82,6 +87,63 @@
 	<div class="flex-1 px-4 py-4 overflow-y-auto pb-20">
 		<div class="max-w-md mx-auto space-y-5">
 
+			<!-- Lern-Einstellungen -->
+			<div class="border border-gray-200 rounded-xl p-4 space-y-5">
+				<div class="flex items-center gap-3 mb-1">
+					<span class="material-icons text-gray-600">tune</span>
+					<div class="font-medium text-sm text-black">Lern-Einstellungen</div>
+				</div>
+
+				<!-- Tipp-Wörter -->
+				<div>
+					<div class="flex justify-between items-center mb-2">
+						<label class="text-sm font-light text-black" for="tipp-slider">Tipp – letzte Wörter anzeigen</label>
+						<span class="text-sm font-medium text-blue-600 min-w-6 text-right">{tippAnzahl}</span>
+					</div>
+					<input
+						id="tipp-slider"
+						type="range"
+						min="2"
+						max="12"
+						step="1"
+						bind:value={tippAnzahl}
+						oninput={() => tippWoerter.set(tippAnzahl)}
+						class="w-full accent-blue-600"
+					/>
+					<div class="flex justify-between text-xs text-gray-400 mt-1 font-light">
+						<span>2 Wörter</span>
+						<span>12 Wörter</span>
+					</div>
+				</div>
+
+				<!-- Sprechgeschwindigkeit -->
+				<div>
+					<div class="flex justify-between items-center mb-2">
+						<label class="text-sm font-light text-black" for="speech-slider">Vorlesen – Sprechgeschwindigkeit</label>
+						<span class="text-sm font-medium text-blue-600 min-w-10 text-right">
+							{geschwindigkeit < 0.8 ? 'Langsam' : geschwindigkeit > 1.4 ? 'Schnell' : 'Normal'} ({geschwindigkeit.toFixed(1)}×)
+						</span>
+					</div>
+					<input
+						id="speech-slider"
+						type="range"
+						min="0.5"
+						max="2.0"
+						step="0.1"
+						bind:value={geschwindigkeit}
+						oninput={() => sprechRate.set(geschwindigkeit)}
+						class="w-full accent-blue-600"
+					/>
+					<div class="flex justify-between text-xs text-gray-400 mt-1 font-light">
+						<span>Langsam (0.5×)</span>
+						<span>Schnell (2.0×)</span>
+					</div>
+				</div>
+			</div>
+
+			<!-- Trennlinie -->
+			<div class="border-t border-gray-100"></div>
+
 			<!-- Daten exportieren -->
 			<div class="border border-gray-200 rounded-xl p-4">
 				<div class="flex items-center gap-3 mb-3">
@@ -138,9 +200,6 @@
 					Beispielverse laden
 				</button>
 			</div>
-
-			<!-- Trennlinie -->
-			<div class="border-t border-gray-100"></div>
 
 			<!-- Alle Daten löschen -->
 			<div class="border border-red-200 rounded-xl p-4">

@@ -2,6 +2,7 @@
   import type { Verse } from '$lib/db';
   import { splitStelle } from '$lib/utils';
   import RatingButtons from './RatingButtons.svelte';
+  import VorlesenButton from './VorlesenButton.svelte';
 
   let { verse, onRate, progress, onGoBack, showTip = false, showText = false, onShowTip, onReveal }: {
     verse: Verse;
@@ -15,29 +16,20 @@
   } = $props();
 
   function showTipp() {
-    if (onShowTip) {
-      onShowTip();
-    } else {
-      showTip = true;
-    }
+    if (onShowTip) { onShowTip(); } else { showTip = true; }
   }
 
   function reveal() {
-    if (onReveal) {
-      onReveal();
-    } else {
-      showTip = false;
-      showText = true;
-    }
+    if (onReveal) { onReveal(); } else { showTip = false; showText = true; }
   }
 
-  // Tipp: only the book
+  // Tipp für Modus 2 (Text→Stelle): zeige nur das Buch als Hinweis
   let stelleParts = $derived(splitStelle(verse.stelle));
-  let tipp = $derived(stelleParts.book);
+  let vorlesenText = $derived(`${verse.stelle} – ${verse.text}`);
 </script>
 
 <div class="h-screen bg-white flex flex-col overflow-hidden">
-  <!-- Progress Bar and Back Button -->
+  <!-- Fortschrittsbalken + Zurück -->
   <div class="bg-white border-b border-gray-100 px-4 py-3 shrink-0">
     <div class="flex justify-between items-center mb-2">
       <button
@@ -57,54 +49,54 @@
     </div>
   </div>
 
-  <!-- Card Content -->
-  <div class="flex-1 flex flex-col p-4 pb-24 overflow-hidden">
+  <!-- Karteninhalt -->
+  <div class="flex-1 flex flex-col p-4 pb-32 overflow-y-auto">
     <div class="max-w-md w-full mx-auto flex-1 flex flex-col">
-      <!-- Vers Text -->
-      <div class="mb-4 text-center">
-        <div class="text-lg font-light text-black leading-relaxed max-w-2xl mx-auto" style="font-size: clamp(1rem, 2.2vw, 1.25rem);">
+      <!-- Vers-Text (Frage) -->
+      <div class="mb-6 text-center">
+        <div class="text-base font-light text-black leading-relaxed max-w-2xl mx-auto" style="font-size: clamp(1rem, 2.2vw, 1.25rem);">
           {verse.text}
         </div>
       </div>
 
-      <!-- Content - Scrollable if needed -->
-      <div class="flex-1 overflow-y-auto">
-        {#if !showText}
-          <!-- Tipp Section -->
-          {#if showTip}
-            <div class="bg-gray-50 border border-gray-200 rounded-xl p-4 mb-4">
-              <div class="text-gray-700 font-light">{tipp}</div>
-            </div>
-          {/if}
-
-          <!-- Buttons -->
-          <div class="space-y-3">
-            {#if !showTip}
-              <button
-                onclick={showTipp}
-                class="w-full bg-gray-100 text-black px-4 py-3 rounded-lg hover:bg-gray-200 font-light transition-colors duration-200 flex items-center justify-center gap-2"
-              >
-                <span class="material-icons text-lg">lightbulb</span>
-                Tipp anzeigen
-              </button>
-            {/if}
-
-            <button
-              onclick={reveal}
-              class="w-full bg-black text-white px-4 py-3 rounded-lg hover:bg-gray-800 font-light transition-colors duration-200 flex items-center justify-center gap-2"
-            >
-              <span class="material-icons text-lg">visibility</span>
-              Vers anzeigen
-            </button>
-          </div>
-        {:else}
-          <!-- Stelle Answer -->
-          <div class="text-center">
-            <div class="text-4xl font-light text-black mb-2">{stelleParts.book}</div>
-            <div class="text-xl font-light text-gray-600">{stelleParts.chapvers}</div>
+      {#if !showText}
+        <!-- Tipp: nur Buchname -->
+        {#if showTip}
+          <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4 text-center">
+            <div class="text-xs text-amber-600 font-medium mb-1">Tipp – Buch</div>
+            <div class="text-gray-800 font-medium">{stelleParts.book}</div>
           </div>
         {/if}
-      </div>
+
+        <div class="space-y-3">
+          {#if !showTip}
+            <button
+              onclick={showTipp}
+              class="w-full bg-gray-100 text-black px-4 py-3 rounded-lg hover:bg-gray-200 font-light transition-colors duration-200 flex items-center justify-center gap-2"
+            >
+              <span class="material-icons text-lg">lightbulb</span>
+              Tipp anzeigen
+            </button>
+          {/if}
+          <button
+            onclick={reveal}
+            class="w-full bg-black text-white px-4 py-3 rounded-lg hover:bg-gray-800 font-light transition-colors duration-200 flex items-center justify-center gap-2"
+          >
+            <span class="material-icons text-lg">visibility</span>
+            Stelle anzeigen
+          </button>
+        </div>
+
+      {:else}
+        <!-- Antwort: Bibelstelle -->
+        <div class="text-center mb-5">
+          <div class="text-4xl font-light text-black mb-2">{stelleParts.book}</div>
+          <div class="text-xl font-light text-gray-600">{stelleParts.chapvers}</div>
+        </div>
+        <div class="mb-2">
+          <VorlesenButton text={vorlesenText} />
+        </div>
+      {/if}
     </div>
   </div>
 

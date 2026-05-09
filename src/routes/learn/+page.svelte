@@ -59,6 +59,9 @@
 			return;
 		}
 
+		// queue immer befüllen – rateGroupVerse braucht es für die Suche
+		queue = [...faellig];
+
 		if (mode === 'buch') {
 			await prepareBookRanges(faellig);
 			if (bookRanges.length === 0) {
@@ -74,14 +77,13 @@
 				return;
 			}
 		} else {
-			// For gemischt, stelle, vers: shuffle the verses
 			queue = faellig.sort(() => Math.random() - 0.5);
 			index = 0;
 			showTip = false;
 			showText = false;
 			currentVerse = queue[0];
 			if (mode === 'gemischt') {
-				currentCardMode = Math.random() < 0.5 ? 'stelle' : 'vers'; // Randomly choose mode for first card
+				currentCardMode = Math.random() < 0.5 ? 'stelle' : 'vers';
 			}
 		}
 	}
