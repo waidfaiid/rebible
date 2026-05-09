@@ -11,6 +11,7 @@
 	}
 	import { db } from '$lib/db';
 	import { calculateSM2 } from '$lib/spacedRepetition';
+	import { splitStelle } from '$lib/utils';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
@@ -93,7 +94,7 @@
 		const bookGroups: { [book: string]: Verse[] } = {};
 		
 		faellig.forEach(verse => {
-			const book = verse.stelle.split(' ')[0];
+			const { book } = splitStelle(verse.stelle);
 			if (!bookGroups[book]) bookGroups[book] = [];
 			bookGroups[book].push(verse);
 		});
@@ -117,27 +118,48 @@
 				return aVers - bVers;
 			});
 
-			// Create ranges of max 5 verses
-			const maxPerRange = 5;
-			for (let i = 0; i < bookVerses.length; i += maxPerRange) {
-				const rangeVerses = bookVerses.slice(i, i + maxPerRange);
-				const firstVerse = rangeVerses[0];
-				const lastVerse = rangeVerses[rangeVerses.length - 1];
-				
-				let rangeName = book;
-				if (rangeVerses.length > 1) {
-					const firstMatch = firstVerse.stelle.match(/(\d+)(?:[,:](\d+))?/);
-					const lastMatch = lastVerse.stelle.match(/(\d+)(?:[,:](\d+))?/);
-					if (firstMatch && lastMatch) {
-						const firstChap = firstMatch[1];
-						const lastChap = lastMatch[1];
-						rangeName += ` ${firstChap}–${lastChap}`;
+			// Create ranges of max 5 verses, evenly distributed
+			const totalVerses = bookVerses.length;
+			if (totalVerses <= 5) {
+				// If 5 or fewer verses, just use the book name
+				bookRanges.push({ range: book, verses: bookVerses });
+			} else {
+				// More than 5 verses, split evenly
+				const numGroups = Math.ceil(totalVerses / 5);
+				const baseSize = Math.floor(totalVerses / numGroups);
+				let remainder = totalVerses % numGroups;
+
+				let currentIndex = 0;
+				for (let i = 0; i < numGroups; i++) {
+					const groupSize = baseSize + (remainder > 0 ? 1 : 0);
+					remainder--;
+					
+					const rangeVerses = bookVerses.slice(currentIndex, currentIndex + groupSize);
+					currentIndex += groupSize;
+
+					const firstVerse = rangeVerses[0];
+					const lastVerse = rangeVerses[rangeVerses.length - 1];
+					
+					let rangeName = book;
+					if (rangeVerses.length > 1) {
+						const firstMatch = firstVerse.stelle.match(/(\d+)(?:[,:](\d+))?/);
+						const lastMatch = lastVerse.stelle.match(/(\d+)(?:[,:](\d+))?/);
+						if (firstMatch && lastMatch) {
+							const firstChap = firstMatch[1];
+							const lastChap = lastMatch[1];
+							if (firstChap === lastChap) {
+								rangeName += ` ${firstChap}`;
+							} else {
+								rangeName += ` ${firstChap}–${lastChap}`;
+							}
+						}
+					} else {
+						const { chapvers } = splitStelle(firstVerse.stelle);
+						rangeName += ` ${chapvers}`;
 					}
-				} else {
-					rangeName += ` ${firstVerse.stelle.split(' ').slice(1).join(' ')}`;
+					
+					bookRanges.push({ range: rangeName, verses: rangeVerses });
 				}
-				
-				bookRanges.push({ range: rangeName, verses: rangeVerses });
 			}
 		});
 
