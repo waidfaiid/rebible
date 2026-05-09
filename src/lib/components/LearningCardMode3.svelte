@@ -1,5 +1,7 @@
 <script lang="ts">
   import type { Verse } from '$lib/db';
+  import { splitStelle } from '$lib/utils';
+  import RatingButtons from './RatingButtons.svelte';
 
   let { verses, bookRange, onRate, onShowNext, progress, onGoBack }: {
     verses: Verse[];
@@ -14,21 +16,11 @@
   let showTip = $state(false);
   let showText = $state(false);
 
-  // Reset state when verses change
-  $effect(() => {
-    // Use a unique key based on the first verse to detect changes
-    if (verses.length > 0) {
-      currentIndex = 0;
-      showTip = false;
-      showText = false;
-    }
-  });
-  
-  // Track the previous verses array to detect changes
+  // Reset state when the verse group changes (detected by first verse id)
   let prevVersesId = $state<number | null>(null);
   $effect(() => {
     if (verses.length > 0 && verses[0]?.id !== prevVersesId) {
-      prevVersesId = verses[0].id || null;
+      prevVersesId = verses[0].id ?? null;
       currentIndex = 0;
       showTip = false;
       showText = false;
@@ -40,18 +32,6 @@
     const book = parts[0];
     const sub = parts.slice(1).join(' ');
     return { book, sub };
-  }
-
-  function splitStelle(stelle: string) {
-    const regex = /^(.+?)\s+(\d+)(?:[,:](\d+))?$/;
-    const m = stelle.match(regex);
-    if (m) {
-      return {
-        book: m[1],
-        chapvers: m[2] + (m[3] ? ',' + m[3] : '')
-      };
-    }
-    return { book: stelle, chapvers: '' };
   }
 
   let rangeParts = $derived(bookRange ? splitBookRange(bookRange) : { book: '', sub: '' });
@@ -179,41 +159,7 @@
     </div>
   </div>
 
-  <!-- Rating Buttons - Fixed at bottom above navigation -->
   {#if showText && currentVerse && currentIndex < verses.length}
-    <div class="fixed bottom-12 left-4 right-4 z-10">
-      <div class="max-w-md mx-auto">
-        <div class="grid grid-cols-2 gap-2">
-          <button
-            onclick={() => onRate(currentVerse.id!, 0)}
-            class="bg-red-50 text-black py-3 px-4 rounded-lg hover:bg-red-100 font-light text-sm transition-colors duration-200 flex items-center justify-center gap-1 border border-red-200"
-            title="Vergessen"
-          >
-            <span class="material-icons text-sm">close</span>
-          </button>
-          <button
-            onclick={() => onRate(currentVerse.id!, 1)}
-            class="bg-orange-50 text-black py-3 px-4 rounded-lg hover:bg-orange-100 font-light text-sm transition-colors duration-200 flex items-center justify-center gap-1 border border-orange-200"
-            title="Lückenhaft"
-          >
-            <span class="material-icons text-sm">warning</span>
-          </button>
-          <button
-            onclick={() => onRate(currentVerse.id!, 3)}
-            class="bg-yellow-50 text-black py-3 px-4 rounded-lg hover:bg-yellow-100 font-light text-sm transition-colors duration-200 flex items-center justify-center gap-1 border border-yellow-200"
-            title="Gut"
-          >
-            <span class="material-icons text-sm">thumb_up</span>
-          </button>
-          <button
-            onclick={() => onRate(currentVerse.id!, 4)}
-            class="bg-green-50 text-black py-3 px-4 rounded-lg hover:bg-green-100 font-light text-sm transition-colors duration-200 flex items-center justify-center gap-1 border border-green-200"
-            title="Perfekt"
-          >
-            <span class="material-icons text-sm">star</span>
-          </button>
-        </div>
-      </div>
-    </div>
+    <RatingButtons onRate={rate} />
   {/if}
 </div>

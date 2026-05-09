@@ -4,14 +4,53 @@
 	import { derived } from 'svelte/store';
 	import { goto } from '$app/navigation';
 
-	// Calculate stats
+	function berechneSerie(verses: { lastReview?: string }[]): number {
+		// Sammle alle einzigartigen Tage an denen gelernt wurde
+		const tageSet = new Set<string>();
+		for (const v of verses) {
+			if (v.lastReview) {
+				const d = new Date(v.lastReview);
+				d.setHours(0, 0, 0, 0);
+				tageSet.add(d.toISOString());
+			}
+		}
+		if (tageSet.size === 0) return 0;
+
+		// Sortiere absteigend
+		const tage = [...tageSet].map(s => new Date(s)).sort((a, b) => b.getTime() - a.getTime());
+
+		const heute = new Date();
+		heute.setHours(0, 0, 0, 0);
+		const gestern = new Date(heute);
+		gestern.setDate(gestern.getDate() - 1);
+
+		// Serie startet nur wenn heute oder gestern gelernt wurde
+		if (tage[0].getTime() !== heute.getTime() && tage[0].getTime() !== gestern.getTime()) {
+			return 0;
+		}
+
+		let serie = 1;
+		for (let i = 1; i < tage.length; i++) {
+			const erwartet = new Date(tage[i - 1]);
+			erwartet.setDate(erwartet.getDate() - 1);
+			if (tage[i].getTime() === erwartet.getTime()) {
+				serie++;
+			} else {
+				break;
+			}
+		}
+		return serie;
+	}
+
 	const stats = derived(verses, $verses => {
 		const heute = new Date();
 		heute.setHours(0, 0, 0, 0);
+		const tagesende = new Date();
+		tagesende.setHours(23, 59, 59, 999);
 
 		const faellig = $verses.filter(v => {
 			const next = v.nextReview ? new Date(v.nextReview) : new Date();
-			return next <= heute;
+			return next <= tagesende;
 		});
 
 		const gelerntHeute = $verses.filter(v => {
@@ -25,7 +64,7 @@
 			gesamt: $verses.length,
 			faellig: faellig.length,
 			gelerntHeute,
-			serie: 0 // Placeholder, could be calculated from consecutive days
+			serie: berechneSerie($verses)
 		};
 	});
 

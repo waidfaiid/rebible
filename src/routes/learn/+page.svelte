@@ -3,7 +3,12 @@
 	import LearningCardMode2 from '$lib/components/LearningCardMode2.svelte';
 	import LearningCardMode3 from '$lib/components/LearningCardMode3.svelte';
 	import LearningCardMode4 from '$lib/components/LearningCardMode4.svelte';
-	import { verses, learningQueue, currentLearningIndex, learningMode } from '$lib/stores';
+	import { learningMode, toastMessage } from '$lib/stores';
+
+	function showToast(msg: string, durationMs = 3000) {
+		toastMessage.set(msg);
+		setTimeout(() => toastMessage.set(null), durationMs);
+	}
 	import { db } from '$lib/db';
 	import { calculateSM2 } from '$lib/spacedRepetition';
 	import { goto } from '$app/navigation';
@@ -17,19 +22,15 @@
 	let showTip = $state(false);
 	let showText = $state(false);
 	let mode = $state<'gemischt' | 'stelle' | 'vers' | 'buch' | 'thema'>('stelle');
-	let currentCardMode = $state<'stelle' | 'vers'>('stelle'); // For gemischt mode
+	let currentCardMode = $state<'stelle' | 'vers'>('stelle');
 
-	// Mode 3: Book ranges
+	// Buch-Modus
 	let bookRanges = $state<{ range: string; verses: Verse[] }[]>([]);
 	let currentBookRangeIndex = $state(0);
 
-	// Mode 4: Tags
+	// Thema-Modus
 	let tagGroups = $state<{ tag: string; verses: Verse[] }[]>([]);
 	let currentTagIndex = $state(0);
-
-	// Subscribe to stores
-	learningQueue.subscribe(q => queue = q);
-	currentLearningIndex.subscribe(i => index = i);
 
 	onMount(async () => {
 		// Get mode from URL
@@ -44,32 +45,32 @@
 
 	async function startLearning() {
 		const allVerses = await db.verse.toArray();
-		const heute = new Date();
-		heute.setHours(0, 0, 0, 0);
+		const morgen = new Date();
+		morgen.setHours(23, 59, 59, 999);
 
 		const faellig = allVerses.filter(v => {
 			const next = v.nextReview ? new Date(v.nextReview) : new Date();
-			return next <= heute;
+			return next <= morgen;
 		});
 
 		if (faellig.length === 0) {
-			alert('Keine fälligen Verse heute');
-			goto('/');
+			showToast('Heute keine Verse fällig – super gemacht!');
+			setTimeout(() => goto('/'), 2000);
 			return;
 		}
 
 		if (mode === 'buch') {
 			await prepareBookRanges(faellig);
 			if (bookRanges.length === 0) {
-				alert('Keine fälligen Verse für Buch-Modus gefunden');
-				goto('/');
+				showToast('Keine Verse für den Buch-Modus gefunden');
+				setTimeout(() => goto('/'), 2000);
 				return;
 			}
 		} else if (mode === 'thema') {
 			await prepareTagGroups(faellig);
 			if (tagGroups.length === 0) {
-				alert('Keine fälligen Verse für Thema-Modus gefunden');
-				goto('/');
+				showToast('Keine Verse mit Themen-Tags gefunden');
+				setTimeout(() => goto('/'), 2000);
 				return;
 			}
 		} else {
@@ -184,7 +185,7 @@
 			interval: result.interval,
 			nextReview: result.nextReview,
 			lastReview: new Date().toISOString(),
-			reviewCount: (currentVerse.reviewCount || 0) + 1
+			reviewCount: grade >= 2 ? (currentVerse.reviewCount || 0) + 1 : currentVerse.reviewCount || 0
 		});
 
 		// Next card
@@ -192,9 +193,8 @@
 		index = newIndex;
 
 		if (newIndex >= queue.length) {
-			// Finished
-			alert('Lernen beendet!');
-			goto('/');
+			showToast('Lernsession abgeschlossen!');
+			setTimeout(() => goto('/'), 1500);
 			return;
 		}
 
@@ -206,7 +206,7 @@
 		showText = false;
 	}
 
-	async function rateMode3(verseId: number, grade: number) {
+	async function rateGroupVerse(verseId: number, grade: number) {
 		const verse = queue.find(v => v.id === verseId);
 		if (!verse) return;
 		
@@ -216,37 +216,23 @@
 			interval: result.interval,
 			nextReview: result.nextReview,
 			lastReview: new Date().toISOString(),
-			reviewCount: (verse.reviewCount || 0) + 1
-		});
-	}
-
-	async function rateMode4(verseId: number, grade: number) {
-		const verse = queue.find(v => v.id === verseId);
-		if (!verse) return;
-		
-		const result = calculateSM2(verse, grade);
-		await db.verse.update(verseId, {
-			easeFactor: result.easeFactor,
-			interval: result.interval,
-			nextReview: result.nextReview,
-			lastReview: new Date().toISOString(),
-			reviewCount: (verse.reviewCount || 0) + 1
+			reviewCount: grade >= 2 ? (verse.reviewCount || 0) + 1 : verse.reviewCount || 0
 		});
 	}
 
 	function nextBookRange() {
 		currentBookRangeIndex++;
 		if (currentBookRangeIndex >= bookRanges.length) {
-			alert('Alle Buchbereiche bearbeitet!');
-			goto('/');
+			showToast('Alle Buchbereiche abgeschlossen!');
+			setTimeout(() => goto('/'), 1500);
 		}
 	}
 
 	function nextTag() {
 		currentTagIndex++;
 		if (currentTagIndex >= tagGroups.length) {
-			alert('Alle Themen bearbeitet!');
-			goto('/');
+			showToast('Alle Themen abgeschlossen!');
+			setTimeout(() => goto('/'), 1500);
 		}
 	}
 
@@ -260,9 +246,22 @@
 				if (mode === 'gemischt') {
 					currentCardMode = Math.random() < 0.5 ? 'stelle' : 'vers';
 				}
+			} else {
+				goto('/');
+			}
+		} else if (mode === 'buch') {
+			if (currentBookRangeIndex > 0) {
+				currentBookRangeIndex--;
+			} else {
+				goto('/');
+			}
+		} else if (mode === 'thema') {
+			if (currentTagIndex > 0) {
+				currentTagIndex--;
+			} else {
+				goto('/');
 			}
 		}
-		// For mode 3 and 4, going back is more complex - maybe implement later
 	}
 </script>
 
@@ -293,8 +292,9 @@
 		<LearningCardMode3
 			verses={bookRanges[currentBookRangeIndex].verses}
 			bookRange={bookRanges[currentBookRangeIndex].range}
-			onRate={rateMode3}
+			onRate={rateGroupVerse}
 			onShowNext={nextBookRange}
+			onGoBack={goBack}
 			progress={{ current: currentBookRangeIndex + 1, total: bookRanges.length }}
 		/>
 	{/key}
@@ -303,8 +303,9 @@
 		<LearningCardMode4
 			verses={tagGroups[currentTagIndex].verses}
 			tag={tagGroups[currentTagIndex].tag}
-			onRate={rateMode4}
+			onRate={rateGroupVerse}
 			onShowNext={nextTag}
+			onGoBack={goBack}
 			progress={{ current: currentTagIndex + 1, total: tagGroups.length }}
 		/>
 	{/key}

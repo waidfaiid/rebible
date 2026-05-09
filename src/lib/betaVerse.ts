@@ -1,4 +1,5 @@
-import { db, type Verse } from './db';
+import { db } from './db';
+import type { Verse } from './db';
 
 // Test data for development - remove this file when done testing
 export const betaVerses: Omit<Verse, 'id'>[] = [
@@ -11,7 +12,6 @@ export const betaVerses: Omit<Verse, 'id'>[] = [
 		nextReview: (() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d.toISOString(); })(), // Due today at midnight
 		lastReview: undefined,
 		reviewCount: 0,
-		reviewCount2: 0
 	},
 	{
 		stelle: 'Psalm 23',
@@ -22,7 +22,6 @@ export const betaVerses: Omit<Verse, 'id'>[] = [
 		nextReview: (() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d.toISOString(); })(),
 		lastReview: undefined,
 		reviewCount: 0,
-		reviewCount2: 0
 	},
 	{
 		stelle: 'Johannes 1,12',
@@ -33,7 +32,6 @@ export const betaVerses: Omit<Verse, 'id'>[] = [
 		nextReview: (() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d.toISOString(); })(),
 		lastReview: undefined,
 		reviewCount: 0,
-		reviewCount2: 0
 	},
 	{
 		stelle: 'Johannes 3,16',
@@ -44,7 +42,6 @@ export const betaVerses: Omit<Verse, 'id'>[] = [
 		nextReview: (() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d.toISOString(); })(),
 		lastReview: undefined,
 		reviewCount: 0,
-		reviewCount2: 0
 	},
 	{
 		stelle: 'Johannes 14,21',
@@ -55,7 +52,6 @@ export const betaVerses: Omit<Verse, 'id'>[] = [
 		nextReview: (() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d.toISOString(); })(),
 		lastReview: undefined,
 		reviewCount: 0,
-		reviewCount2: 0
 	},
 	{
 		stelle: 'Johannes 14,23',
@@ -66,7 +62,6 @@ export const betaVerses: Omit<Verse, 'id'>[] = [
 		nextReview: (() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d.toISOString(); })(),
 		lastReview: undefined,
 		reviewCount: 0,
-		reviewCount2: 0
 	},
 	{
 		stelle: 'Jesaja 55,8-9',
@@ -77,7 +72,6 @@ export const betaVerses: Omit<Verse, 'id'>[] = [
 		nextReview: (() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d.toISOString(); })(),
 		lastReview: undefined,
 		reviewCount: 0,
-		reviewCount2: 0
 	},
 	{
 		stelle: 'Jesaja 55,6-7',
@@ -88,7 +82,6 @@ export const betaVerses: Omit<Verse, 'id'>[] = [
 		nextReview: (() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d.toISOString(); })(),
 		lastReview: undefined,
 		reviewCount: 0,
-		reviewCount2: 0
 	}
 ];
 

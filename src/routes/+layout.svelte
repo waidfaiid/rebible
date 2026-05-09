@@ -2,10 +2,9 @@
 	import './layout.css';
 	import favicon from '$lib/assets/favicon.svg';
 	import { db } from '$lib/db';
-	import { verses } from '$lib/stores';
+	import { verses, toastMessage } from '$lib/stores';
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
-	import { loadBetaVerses } from '$lib/betaVerse';
 
 	let { children } = $props();
 
@@ -13,12 +12,8 @@
 
 	onMount(async () => {
 		try {
-			// Load beta test data on every app start
-			await loadBetaVerses();
-
 			const count = await db.verse.count();
 			dbStatus = `${count} Verse in der DB`;
-			// Load verses into store
 			const allVerses = await db.verse.toArray();
 			verses.set(allVerses);
 		} catch (error) {
@@ -45,6 +40,15 @@
 	<main class="flex-1 bg-white overflow-hidden">
 		{@render children()}
 	</main>
+
+	<!-- Global Toast Notification -->
+	{#if $toastMessage}
+		<div class="fixed bottom-20 left-4 right-4 z-50 flex justify-center pointer-events-none">
+			<div class="bg-gray-900 text-white px-5 py-3 rounded-xl text-sm font-light shadow-lg">
+				{$toastMessage}
+			</div>
+		</div>
+	{/if}
 
 	<!-- Bottom Navigation - Ultra Compact -->
 	<nav class="fixed bottom-0 left-0 right-0 bg-white bg-opacity-95 backdrop-blur-md border-t border-gray-100 shrink-0">
