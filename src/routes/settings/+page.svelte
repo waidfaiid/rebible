@@ -3,6 +3,9 @@
 	import { verses, toastMessage, tippWoerter, sprechRate } from '$lib/stores';
 	import { betaVerses } from '$lib/betaVerse';
 	import type { Verse } from '$lib/db';
+	import AnkiImportModal from '$lib/components/AnkiImportModal.svelte';
+
+	let ankiFile = $state<File | null>(null);
 
 	let loeschBestaetigung = $state(false);
 
@@ -65,6 +68,21 @@
 			showToast('Fehler beim Import – Datei ungültig');
 		}
 		input.value = '';
+	}
+
+	// --- Anki Import ---
+	function ankiImportGewaehlt(event: Event) {
+		const input = event.target as HTMLInputElement;
+		const file = input.files?.[0];
+		if (file) ankiFile = file;
+		input.value = '';
+	}
+
+	function ankiImportFertig(result?: { imported: number; updated: number; skipped: number }) {
+		ankiFile = null;
+		if (result) {
+			showToast(`${result.imported} neu, ${result.updated} aktualisiert, ${result.skipped} übersprungen`);
+		}
 	}
 
 	// --- Alle Daten löschen ---
@@ -218,7 +236,25 @@
 					/>
 				</label>
 
-				<!-- Testdaten -->
+				<!-- Anki Import -->
+				<label class="w-full bg-zinc-800 hover:bg-zinc-700 active:scale-95 text-white py-4 px-4 rounded-2xl font-semibold transition-all duration-200 flex items-center justify-between border border-zinc-700 cursor-pointer">
+					<div class="flex items-center gap-3">
+						<span class="material-icons text-zinc-400">style</span>
+						<div class="text-left">
+							<div class="text-sm">Aus Anki importieren</div>
+							<div class="text-[10px] text-zinc-500 font-medium uppercase tracking-wider">.colpkg-Datei wählen</div>
+						</div>
+					</div>
+					<span class="material-icons text-zinc-600">chevron_right</span>
+					<input
+						type="file"
+						accept=".colpkg"
+						onchange={ankiImportGewaehlt}
+						class="hidden"
+					/>
+				</label>
+
+			<!-- Testdaten -->
 				<button
 					onclick={testdatenLaden}
 					class="w-full bg-zinc-800 hover:bg-zinc-700 active:scale-95 text-white py-4 px-4 rounded-2xl font-semibold transition-all duration-200 flex items-center justify-between border border-zinc-700"
@@ -275,3 +311,7 @@
 		</div>
 	</div>
 </div>
+
+{#if ankiFile}
+	<AnkiImportModal file={ankiFile} onclose={ankiImportFertig} />
+{/if}

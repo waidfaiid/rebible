@@ -28,6 +28,9 @@
     "wrangler": "^4.87.0"
   },
   "dependencies": {
-    "dexie": "^4.4.2"
+    "@types/sql.js": "^1.4.11",
+    "dexie": "^4.4.2",
+    "jszip": "^3.10.1",
+    "sql.js": "^1.14.1"
   }
 }
