@@ -55,12 +55,15 @@
   }
 </script>
 
-<div class="bg-white rounded-lg shadow-md p-6 mb-6">
-  <h2 class="text-xl font-semibold mb-4">Neue Verse hinzufügen</h2>
+<div class="bg-white border border-gray-100 rounded-2xl p-8 mb-8">
+  <div class="flex items-center gap-3 mb-8">
+    <span class="material-icons text-gray-400 text-2xl">add_circle</span>
+    <h2 class="text-2xl font-light text-black">Neuer Vers</h2>
+  </div>
 
-  <div class="space-y-4">
+  <div class="space-y-6">
     <div>
-      <label class="block text-sm font-medium text-gray-700 mb-1">Bibelstelle</label>
+      <label class="block text-sm font-light text-gray-700 mb-2">Bibelstelle</label>
       <div class="flex gap-2">
         <input
           type="text"
@@ -79,7 +82,7 @@
         {/if}
       </div>
       {#if feedback}
-        <div class="mt-1 text-sm {erkannteStelle ? 'text-green-600' : 'text-red-600'}">
+        <div class="mt-1 text-xs {erkannteStelle ? 'text-green-600' : 'text-red-600'} font-light">
           {feedback}
         </div>
       {/if}
@@ -107,8 +110,9 @@
 
     <button
       onclick={submit}
-      class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 font-medium"
+      class="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 px-4 rounded-xl hover:shadow-lg font-bold transition-all duration-200 transform hover:scale-105 flex items-center justify-center gap-2"
     >
+      <span class="material-icons">save</span>
       Vers speichern
     </button>
   </div>

@@ -7,3 +7,4 @@ export const currentLearningIndex = writable(0);
 export const showEditModal = writable(false);
 export const selectedVerse = writable<Verse | null>(null);
 export const toastMessage = writable<string | null>(null);
+export const learningMode = writable<'gemischt' | 'stelle' | 'vers' | 'buch' | 'thema'>('gemischt');

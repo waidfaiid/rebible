@@ -1,16 +1,33 @@
 <script lang="ts">
   import type { Verse } from '$lib/db';
 
-  let { verse, onRate, onShowTip, onReveal, showTip, showText, progress, onGoBack }: {
+  let { verse, onRate, progress, onGoBack, showTip = false, showText = false, onShowTip, onReveal }: {
     verse: Verse;
     onRate: (grade: number) => void;
-    onShowTip: () => void;
-    onReveal: () => void;
-    showTip: boolean;
-    showText: boolean;
     progress: { current: number; total: number };
     onGoBack?: () => void;
+    showTip?: boolean;
+    showText?: boolean;
+    onShowTip?: () => void;
+    onReveal?: () => void;
   } = $props();
+
+  function showTipp() {
+    if (onShowTip) {
+      onShowTip();
+    } else {
+      showTip = true;
+    }
+  }
+
+  function reveal() {
+    if (onReveal) {
+      onReveal();
+    } else {
+      showTip = false;
+      showText = true;
+    }
+  }
 
   // Split stelle into book and chapter:verse
   function splitStelle(stelle: string) {
@@ -25,14 +42,9 @@
     return { book: stelle, chapvers: '' };
   }
 
-  // Tipp: last 5 words
-  function getTipp(text: string): string {
-    const words = text.trim().split(/\s+/);
-    return words.length > 5 ? '… ' + words.slice(-5).join(' ') : text;
-  }
-
+  // Tipp: only the book
   let stelleParts = $derived(splitStelle(verse.stelle));
-  let tipp = $derived(getTipp(verse.text));
+  let tipp = $derived(stelleParts.book);
 </script>
 
 <div class="h-screen bg-white flex flex-col overflow-hidden">
@@ -59,10 +71,11 @@
   <!-- Card Content -->
   <div class="flex-1 flex flex-col p-4 pb-24 overflow-hidden">
     <div class="max-w-md w-full mx-auto flex-1 flex flex-col">
-      <!-- Stelle -->
+      <!-- Vers Text -->
       <div class="mb-4 text-center">
-        <div class="text-4xl font-light text-black mb-2">{stelleParts.book}</div>
-        <div class="text-xl font-light text-gray-600">{stelleParts.chapvers}</div>
+        <div class="text-lg font-light text-black leading-relaxed max-w-2xl mx-auto" style="font-size: clamp(1rem, 2.2vw, 1.25rem);">
+          {verse.text}
+        </div>
       </div>
 
       <!-- Content - Scrollable if needed -->
@@ -71,7 +84,7 @@
           <!-- Tipp Section -->
           {#if showTip}
             <div class="bg-gray-50 border border-gray-200 rounded-xl p-4 mb-4">
-              <div class="text-gray-700 font-light leading-relaxed">{tipp}</div>
+              <div class="text-gray-700 font-light">{tipp}</div>
             </div>
           {/if}
 
@@ -79,7 +92,7 @@
           <div class="space-y-3">
             {#if !showTip}
               <button
-                onclick={onShowTip}
+                onclick={showTipp}
                 class="w-full bg-gray-100 text-black px-4 py-3 rounded-lg hover:bg-gray-200 font-light transition-colors duration-200 flex items-center justify-center gap-2"
               >
                 <span class="material-icons text-lg">lightbulb</span>
@@ -88,19 +101,18 @@
             {/if}
 
             <button
-              onclick={onReveal}
+              onclick={reveal}
               class="w-full bg-black text-white px-4 py-3 rounded-lg hover:bg-gray-800 font-light transition-colors duration-200 flex items-center justify-center gap-2"
             >
               <span class="material-icons text-lg">visibility</span>
-              Aufdecken
+              Vers anzeigen
             </button>
           </div>
         {:else}
-          <!-- Vers Text -->
+          <!-- Stelle Answer -->
           <div class="text-center">
-            <div class="text-lg font-light text-black leading-relaxed max-w-2xl mx-auto" style="font-size: clamp(1rem, 2.2vw, 1.25rem);">
-              {verse.text}
-            </div>
+            <div class="text-4xl font-light text-black mb-2">{stelleParts.book}</div>
+            <div class="text-xl font-light text-gray-600">{stelleParts.chapvers}</div>
           </div>
         {/if}
       </div>
