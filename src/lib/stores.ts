@@ -25,3 +25,12 @@ export const tippWoerter = localStore('tippWoerter', 5);
 
 // Sprechgeschwindigkeit für Text-to-Speech (0.5 = langsam, 2.0 = schnell, Standard: 1.0)
 export const sprechRate = localStore('sprechRate', 1.0);
+
+// Schriftgröße der Fragen/Versetexte in rem (Standard: 1.8)
+export const frageFontSize = localStore('frageFontSize', 1.8);
+
+// Schriftgröße der Fragen-Überschrift in Modus 1, 3, 4 (Bibelstelle/Buch/Thema) in rem (Standard: 1.5)
+export const frageGroesse = localStore('frageGroesse', 1.5);
+
+// Tage-Anzeige auf Bewertungsbuttons ein/ausblenden (Standard: an)
+export const showDaysOnButtons = localStore('showDaysOnButtons', true);

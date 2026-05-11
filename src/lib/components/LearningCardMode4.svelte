@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { Verse } from '$lib/db';
   import { splitStelle, getLastWords } from '$lib/utils';
-  import { tippWoerter } from '$lib/stores';
+  import { tippWoerter, frageFontSize, frageGroesse } from '$lib/stores';
   import RatingButtons from './RatingButtons.svelte';
   import VorlesenButton from './VorlesenButton.svelte';
 
@@ -19,6 +19,12 @@
   let showText = $state(false);
   let woerter = $state(5);
   tippWoerter.subscribe(v => woerter = v);
+
+  let fontSize = $state(1.8);
+  frageFontSize.subscribe(v => fontSize = v);
+
+  let frageSize = $state(1.5);
+  frageGroesse.subscribe(v => frageSize = v);
 
   // Reset wenn neue Gruppe kommt
   let prevVersesId = $state<number | null>(null);
@@ -78,10 +84,9 @@
 
   <!-- Header (Context) -->
   <div class="px-4 py-2 shrink-0 text-center border-b border-zinc-800">
-    <div class="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mb-0.5">Thema</div>
-    <h2 class="text-xl font-bold text-white truncate flex items-center justify-center gap-2">
-      <span class="material-icons text-zinc-500 text-lg">category</span>
-      {tag}
+    <h2 class="text-sm font-bold text-zinc-400 truncate flex items-center justify-center gap-2">
+      <span class="material-icons text-zinc-500 text-base">category</span>
+      Thema-Modus
       <span class="text-xs font-bold text-zinc-500 ml-2">{currentIndex + 1} / {verses.length}</span>
     </h2>
   </div>
@@ -91,7 +96,11 @@
     <div class="m-auto w-full max-w-md">
       {#if currentVerse && currentIndex < verses.length}
         {#if !showText}
-          <!-- Tipp -->
+          <!-- Frage: Thema groß anzeigen -->
+          <div class="text-center w-full mb-4">
+            <div class="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mb-2">Thema</div>
+            <div class="font-bold text-white leading-tight" style="font-size: {frageSize}rem;">{tag}</div>
+          </div>
           {#if showTip}
             <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 text-center shadow-sm">
               <div class="text-[10px] text-zinc-500 font-bold uppercase tracking-wider mb-2">Tipp – letzte {woerter} Wörter</div>
@@ -103,7 +112,7 @@
             <div class="text-2xl font-bold text-white mb-3">
               {stelleParts.book} {stelleParts.chapvers}
             </div>
-            <div class="text-white leading-snug font-semibold" style="font-size: clamp(1.25rem, 5vw, 2rem);">
+            <div class="text-white leading-snug font-semibold" style="font-size: {fontSize}rem;">
               {currentVerse.text}
             </div>
           </div>
@@ -149,7 +158,7 @@
             Vers aufdecken
           </button>
         {:else}
-          <RatingButtons onRate={rate} />
+          <RatingButtons onRate={rate} verse={currentVerse} />
           <VorlesenButton text={vorlesenText} />
         {/if}
       </div>
