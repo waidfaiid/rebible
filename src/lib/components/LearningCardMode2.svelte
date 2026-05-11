@@ -3,6 +3,7 @@
   import { splitStelle } from '$lib/utils';
   import RatingButtons from './RatingButtons.svelte';
   import VorlesenButton from './VorlesenButton.svelte';
+  import { frageFontSize, frageGroesse } from '$lib/stores';
 
   let { verse, onRate, progress, onGoBack, showTip = false, showText = false, onShowTip, onReveal }: {
     verse: Verse;
@@ -27,9 +28,15 @@
   let stelleParts = $derived(splitStelle(verse.stelle));
   let vorlesenText = $derived(`${verse.stelle} – ${verse.text}`);
 
-  let maxWordsMode2 = $state(50);
+  let fontSize = $state(1.8);
+  frageFontSize.subscribe(v => fontSize = v);
+
+  let frageSize = $state(1.5);
+  frageGroesse.subscribe(v => frageSize = v);
+
+  let maxWordsMode2 = $state(30);
   $effect(() => {
-    const stored = localStorage.getItem('rebible_max_words_mode2');
+    const stored = localStorage.getItem('rebible_max_words_mode2_v2');
     if (stored) {
       maxWordsMode2 = parseInt(stored, 10);
     }
@@ -78,7 +85,7 @@
   <!-- Scrollable Answer Area -->
   <div class="flex-1 overflow-y-auto p-4 flex flex-col">
     <div class="m-auto w-full max-w-md">
-      <div class="text-center text-white leading-snug font-semibold mb-6" style="font-size: clamp(1.25rem, 5vw, 2rem);">
+      <div class="text-center text-white leading-snug font-semibold mb-6" style="font-size: {fontSize}rem;">
         {displayedQuestionText()}
       </div>
 
@@ -93,8 +100,8 @@
       {:else}
         <div class="w-full h-px bg-zinc-800 my-6"></div>
         <div class="text-center">
-          <div class="text-4xl font-bold text-white mb-2 tracking-tight">{stelleParts.book}</div>
-          <div class="text-2xl font-medium text-zinc-400">{stelleParts.chapvers}</div>
+          <div class="font-bold text-white leading-tight" style="font-size: {frageSize}rem;">{stelleParts.book}</div>
+          <div class="font-semibold text-zinc-400 mt-1" style="font-size: {frageSize * 0.75}rem;">{stelleParts.chapvers}</div>
         </div>
       {/if}
     </div>
@@ -121,7 +128,7 @@
           Stelle anzeigen
         </button>
       {:else}
-        <RatingButtons {onRate} />
+        <RatingButtons {onRate} {verse} dreierModus={true} />
         <VorlesenButton text={vorlesenText} />
       {/if}
     </div>

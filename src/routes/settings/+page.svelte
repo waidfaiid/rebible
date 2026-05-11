@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { db } from '$lib/db';
-	import { verses, toastMessage, tippWoerter, sprechRate } from '$lib/stores';
+	import { verses, toastMessage, tippWoerter, sprechRate, frageFontSize, frageGroesse, showDaysOnButtons } from '$lib/stores';
 	import { betaVerses } from '$lib/betaVerse';
 	import type { Verse } from '$lib/db';
 	import AnkiImportModal from '$lib/components/AnkiImportModal.svelte';
@@ -12,13 +12,19 @@
 	// Einstellungs-Werte aus Stores lesen
 	let tippAnzahl = $state(5);
 	let geschwindigkeit = $state(1.0);
-	let maxWordsMode2 = $state(50);
+	let maxWordsMode2 = $state(30);
+	let fontSizeValue = $state(1.8);
+	let frageGroesseValue = $state(1.5);
+	let showDays = $state(true);
 	tippWoerter.subscribe(v => tippAnzahl = v);
 	sprechRate.subscribe(v => geschwindigkeit = v);
+	frageFontSize.subscribe(v => fontSizeValue = v);
+	frageGroesse.subscribe(v => frageGroesseValue = v);
+	showDaysOnButtons.subscribe(v => showDays = v);
 
 	import { onMount } from 'svelte';
 	onMount(() => {
-		const storedMaxWords = localStorage.getItem('rebible_max_words_mode2');
+		const storedMaxWords = localStorage.getItem('rebible_max_words_mode2_v2');
 		if (storedMaxWords) {
 			maxWordsMode2 = parseInt(storedMaxWords, 10);
 		}
@@ -159,7 +165,7 @@
 						max="200"
 						step="1"
 						bind:value={maxWordsMode2}
-						oninput={() => localStorage.setItem('rebible_max_words_mode2', maxWordsMode2.toString())}
+						oninput={() => localStorage.setItem('rebible_max_words_mode2_v2', maxWordsMode2.toString())}
 						class="w-full accent-red-600 h-2 bg-zinc-800 rounded-lg appearance-none cursor-pointer"
 					/>
 					<div class="flex justify-between text-xs text-zinc-500 mt-2 font-medium">
@@ -167,6 +173,73 @@
 						<span>Lang (200)</span>
 					</div>
 					<p class="text-xs text-zinc-500 mt-3 font-medium">Kürzt lange Verse in der Frage-Ansicht nach dieser Anzahl an Wörtern.</p>
+				</div>
+
+				<div class="h-px bg-zinc-800 w-full my-6"></div>
+
+				<!-- Schriftgröße der Vers-Texte (Antwort) -->
+				<div>
+					<div class="flex justify-between items-center mb-3">
+						<label class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider" for="font-size-slider">Schriftgröße Vers-Text (Antwort)</label>
+						<span class="bg-zinc-800 text-white px-3 py-1 rounded-full text-sm font-bold">{fontSizeValue.toFixed(1)}</span>
+					</div>
+					<input
+						id="font-size-slider"
+						type="range"
+						min="1.0"
+						max="3.0"
+						step="0.1"
+						bind:value={fontSizeValue}
+						oninput={() => frageFontSize.set(fontSizeValue)}
+						class="w-full accent-red-600 h-2 bg-zinc-800 rounded-lg appearance-none cursor-pointer"
+					/>
+					<div class="flex justify-between text-xs text-zinc-500 mt-2 font-medium">
+						<span>Klein</span>
+						<span>Groß</span>
+					</div>
+					<p class="text-xs text-zinc-500 mt-3 font-medium">Gilt für den aufgedeckten Vers-Text in allen Modi.</p>
+				</div>
+
+				<div class="h-px bg-zinc-800 w-full my-6"></div>
+
+				<!-- Schriftgröße der Fragen (Modus 1, 3, 4) -->
+				<div>
+					<div class="flex justify-between items-center mb-3">
+						<label class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider" for="frage-size-slider">Schriftgröße Fragen (Modus 1, 3, 4)</label>
+						<span class="bg-zinc-800 text-white px-3 py-1 rounded-full text-sm font-bold">{frageGroesseValue.toFixed(1)}</span>
+					</div>
+					<input
+						id="frage-size-slider"
+						type="range"
+						min="1.0"
+						max="3.0"
+						step="0.1"
+						bind:value={frageGroesseValue}
+						oninput={() => frageGroesse.set(frageGroesseValue)}
+						class="w-full accent-red-600 h-2 bg-zinc-800 rounded-lg appearance-none cursor-pointer"
+					/>
+					<div class="flex justify-between text-xs text-zinc-500 mt-2 font-medium">
+						<span>Klein</span>
+						<span>Groß</span>
+					</div>
+					<p class="text-xs text-zinc-500 mt-3 font-medium">Gilt für die Frage-Anzeige in Modus 1 (Bibelstelle), 3 (Buch) und 4 (Thema) – also was du erkennen oder auswendig wissen musst.</p>
+				</div>
+
+				<div class="h-px bg-zinc-800 w-full my-6"></div>
+
+				<!-- Tage-Anzeige auf Bewertungsbuttons -->
+				<div class="flex items-center justify-between">
+					<div>
+						<div class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1">Tage auf Bewertungsbuttons</div>
+						<p class="text-xs text-zinc-500 font-medium">Zeigt an, in wie viel Tagen ein Vers bei jeweiliger Bewertung erneut abgefragt wird.</p>
+					</div>
+					<button
+						onclick={() => { showDays = !showDays; showDaysOnButtons.set(showDays); }}
+						aria-label="Tage-Anzeige {showDays ? 'deaktivieren' : 'aktivieren'}"
+						class="ml-4 shrink-0 w-12 h-6 rounded-full transition-all duration-200 relative {showDays ? 'bg-red-600' : 'bg-zinc-700'}"
+					>
+						<span class="absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-all duration-200 {showDays ? 'left-6' : 'left-0.5'}"></span>
+					</button>
 				</div>
 
 				<!-- Sprechgeschwindigkeit -->
