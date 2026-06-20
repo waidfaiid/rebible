@@ -1,6 +1,6 @@
 <script lang="ts">
 	import './layout.css';
-	import favicon from '$lib/assets/favicon.svg';
+	import favicon from '$lib/assets/logo.png';
 	import { db } from '$lib/db';
 	import { verses, toastMessage } from '$lib/stores';
 	import { onMount } from 'svelte';

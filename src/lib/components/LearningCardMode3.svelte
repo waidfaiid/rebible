@@ -5,9 +5,10 @@
   import RatingButtons from './RatingButtons.svelte';
   import VorlesenButton from './VorlesenButton.svelte';
 
-  let { verses, bookRange, onRate, onShowNext, progress, onGoBack }: {
+  let { verses, displayBook, displaySub, onRate, onShowNext, progress, onGoBack }: {
     verses: Verse[];
-    bookRange: string;
+    displayBook: string;
+    displaySub: string;
     onRate: (verseId: number, grade: number, relearning?: boolean) => void;
     onShowNext: () => void;
     progress: { current: number; total: number };
@@ -32,15 +33,14 @@
     }
   });
 
-  function splitBookRange(range: string) {
-    const parts = range.split(' ');
-    return { book: parts[0], sub: parts.slice(1).join(' ') };
-  }
+  // Mehrere Bücher in der Gruppe → vollständige Stelle anzeigen
+  let isMultiBook = $derived(
+    verses.length > 1 &&
+    verses.some(v => splitStelle(v.stelle).book !== splitStelle(verses[0].stelle).book)
+  );
 
-  let rangeParts = $derived(splitBookRange(bookRange));
-
-  function getChapVers(stelle: string): string {
-    return splitStelle(stelle).chapvers;
+  function getVerseLabel(stelle: string): string {
+    return isMultiBook ? stelle : splitStelle(stelle).chapvers;
   }
 
   let vorlesenText = $derived(
@@ -86,9 +86,9 @@
           <div class="flex items-center justify-center gap-2 mb-1">
             <span class="material-icons text-zinc-500 text-lg">auto_stories</span>
           </div>
-          <div class="font-bold text-white leading-tight" style="font-size: {frageSize}rem;">{rangeParts.book}</div>
-          {#if rangeParts.sub}
-            <div class="font-semibold text-zinc-400 mt-1" style="font-size: {frageSize * 0.65}rem;">{rangeParts.sub}</div>
+          <div class="font-bold text-white leading-tight" style="font-size: {frageSize}rem;">{displayBook}</div>
+          {#if displaySub}
+            <div class="font-semibold text-zinc-400 mt-1" style="font-size: {frageSize * 0.65}rem;">{displaySub}</div>
           {/if}
         </div>
 
@@ -97,7 +97,7 @@
         <div class="space-y-2">
           {#each verses as v}
             <div class="bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 leading-snug" style="font-size: {fontSize}rem;">
-              <span class="font-bold text-white">{getChapVers(v.stelle)}</span>
+              <span class="font-bold text-white">{getVerseLabel(v.stelle)}</span>
               <span class="text-zinc-200 ml-2">{v.text}</span>
             </div>
           {/each}

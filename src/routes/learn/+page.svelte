@@ -12,6 +12,7 @@
 	import { db } from '$lib/db';
 	import { calculateSM2 } from '$lib/spacedRepetition';
 	import { splitStelle } from '$lib/utils';
+	import { BUECHER } from '$lib/bible';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
@@ -26,7 +27,7 @@
 	let currentCardMode = $state<'stelle' | 'vers'>('stelle');
 
 	// Buch-Modus
-	let bookRanges = $state<{ range: string; verses: Verse[] }[]>([]);
+	let bookRanges = $state<{ range: string; verses: Verse[]; displayBook: string; displaySub: string }[]>([]);
 	let currentBookRangeIndex = $state(0);
 
 	// Thema-Modus
@@ -145,22 +146,52 @@
 		}
 	}
 
+	// Gibt einen Familienschlüssel zurück, der gleichnamige Bücher zusammenfasst.
+	// "1. Korinther" und "2. Korinther" → "Korinther"
+	// "1. Johannes", "2. Johannes", "3. Johannes" → "Johannes-Briefe" (getrennt vom Evangelium)
+	// Alle anderen Bücher behalten ihren eigenen Schlüssel.
+	function getBookFamilyKey(book: string): string {
+		const m = book.match(/^(\d+)\.\s+(.+)$/);
+		if (m) {
+			const baseName = m[2];
+			if (baseName === 'Johannes') return 'Johannes-Briefe';
+			return baseName;
+		}
+		return book;
+	}
+
+	function getBookOrderIndex(book: string): number {
+		const idx = BUECHER.findIndex(b => b.name === book);
+		return idx >= 0 ? idx : 999;
+	}
+
 	async function prepareBookRanges(allVerses: Verse[], morgen: Date) {
-		// Alle Verse nach Buch gruppieren
-		const bookGroups: { [book: string]: Verse[] } = {};
+		// Verse nach Buchfamilie gruppieren (gleichnamige Bücher zusammen)
+		const familyGroups: { [familyKey: string]: Verse[] } = {};
 		allVerses.forEach(verse => {
 			const { book } = splitStelle(verse.stelle);
-			if (!bookGroups[book]) bookGroups[book] = [];
-			bookGroups[book].push(verse);
+			const familyKey = getBookFamilyKey(book);
+			if (!familyGroups[familyKey]) familyGroups[familyKey] = [];
+			familyGroups[familyKey].push(verse);
 		});
 
 		bookRanges = [];
 
-		Object.entries(bookGroups).forEach(([book, bookVerses]) => {
-			// Nach Kapitel/Vers sortieren
-			bookVerses.sort((a, b) => {
-				const aMatch = a.stelle.match(/(\d+)(?:[,:](\d+))?/);
-				const bMatch = b.stelle.match(/(\d+)(?:[,:](\d+))?/);
+		Object.entries(familyGroups).forEach(([familyKey, familyVerses]) => {
+			// Mindestens 2 Verse nötig – einzelne Verse werden in Modus 3 nicht abgefragt
+			if (familyVerses.length < 2) return;
+
+			// Nach Buchreihenfolge (BUECHER-Index), dann Kapitel/Vers sortieren
+			familyVerses.sort((a, b) => {
+				const aBook = splitStelle(a.stelle).book;
+				const bBook = splitStelle(b.stelle).book;
+				const aOrder = getBookOrderIndex(aBook);
+				const bOrder = getBookOrderIndex(bBook);
+				if (aOrder !== bOrder) return aOrder - bOrder;
+				const aCV = splitStelle(a.stelle).chapvers;
+				const bCV = splitStelle(b.stelle).chapvers;
+				const aMatch = aCV.match(/^(\d+)(?:[,:](\d+))?/);
+				const bMatch = bCV.match(/^(\d+)(?:[,:](\d+))?/);
 				if (!aMatch || !bMatch) return 0;
 				const aChap = parseInt(aMatch[1]);
 				const bChap = parseInt(bMatch[1]);
@@ -171,10 +202,10 @@
 			});
 
 			// In Gruppen von max. 5 aufteilen
-			const totalVerses = bookVerses.length;
+			const totalVerses = familyVerses.length;
 			const chunks: Verse[][] = [];
 			if (totalVerses <= 5) {
-				chunks.push(bookVerses);
+				chunks.push(familyVerses);
 			} else {
 				const numGroups = Math.ceil(totalVerses / 5);
 				const baseSize = Math.floor(totalVerses / numGroups);
@@ -183,7 +214,7 @@
 				for (let i = 0; i < numGroups; i++) {
 					const groupSize = baseSize + (remainder > 0 ? 1 : 0);
 					remainder--;
-					chunks.push(bookVerses.slice(idx, idx + groupSize));
+					chunks.push(familyVerses.slice(idx, idx + groupSize));
 					idx += groupSize;
 				}
 			}
@@ -192,7 +223,6 @@
 			chunks.forEach(rangeVerses => {
 				const isDue = rangeVerses.some(v => {
 					const nextDate = (v as Record<string, any>).nextReviewBuch;
-					// Nie gelernt (kein Datum) = immer fällig
 					if (!nextDate) return true;
 					return new Date(nextDate) <= morgen;
 				});
@@ -200,20 +230,37 @@
 
 				const firstVerse = rangeVerses[0];
 				const lastVerse = rangeVerses[rangeVerses.length - 1];
-				let rangeName = book;
-				if (rangeVerses.length > 1) {
-					const firstMatch = firstVerse.stelle.match(/(\d+)(?:[,:](\d+))?/);
-					const lastMatch = lastVerse.stelle.match(/(\d+)(?:[,:](\d+))?/);
-					if (firstMatch && lastMatch) {
-						const firstChap = firstMatch[1];
-						const lastChap = lastMatch[1];
-						rangeName += firstChap === lastChap ? ` ${firstChap}` : ` ${firstChap}–${lastChap}`;
-					}
+				const firstBook = splitStelle(firstVerse.stelle).book;
+				const lastBook = splitStelle(lastVerse.stelle).book;
+				const isMultiBook = firstBook !== lastBook;
+
+				let displayBook: string;
+				let displaySub: string;
+
+				if (isMultiBook) {
+					// Mehrere Bücher in der Gruppe: Familienname als Haupttitel
+					displayBook = familyKey;
+					const firstChap = splitStelle(firstVerse.stelle).chapvers.match(/^(\d+)/)?.[1] ?? '';
+					const lastChap = splitStelle(lastVerse.stelle).chapvers.match(/^(\d+)/)?.[1] ?? '';
+					displaySub = `${firstBook} ${firstChap} – ${lastBook} ${lastChap}`;
 				} else {
-					const { chapvers } = splitStelle(firstVerse.stelle);
-					rangeName += ` ${chapvers}`;
+					// Alle Verse aus demselben Buch
+					displayBook = firstBook;
+					if (rangeVerses.length > 1) {
+						const firstChap = splitStelle(firstVerse.stelle).chapvers.match(/^(\d+)/)?.[1] ?? '';
+						const lastChap = splitStelle(lastVerse.stelle).chapvers.match(/^(\d+)/)?.[1] ?? '';
+						displaySub = firstChap === lastChap ? firstChap : `${firstChap}–${lastChap}`;
+					} else {
+						displaySub = splitStelle(firstVerse.stelle).chapvers;
+					}
 				}
-				bookRanges.push({ range: rangeName, verses: rangeVerses });
+
+				bookRanges.push({
+					range: `${displayBook}${displaySub ? ' ' + displaySub : ''}`,
+					verses: rangeVerses,
+					displayBook,
+					displaySub
+				});
 			});
 		});
 
@@ -424,7 +471,8 @@
 	{#key bookRanges[currentBookRangeIndex].range}
 		<LearningCardMode3
 			verses={bookRanges[currentBookRangeIndex].verses}
-			bookRange={bookRanges[currentBookRangeIndex].range}
+			displayBook={bookRanges[currentBookRangeIndex].displayBook}
+			displaySub={bookRanges[currentBookRangeIndex].displaySub}
 			onRate={rateGroupVerse}
 			onShowNext={nextBookRange}
 			onGoBack={goBack}
