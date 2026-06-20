@@ -8,7 +8,7 @@
   let { verses, bookRange, onRate, onShowNext, progress, onGoBack }: {
     verses: Verse[];
     bookRange: string;
-    onRate: (verseId: number, grade: number) => void;
+    onRate: (verseId: number, grade: number, relearning?: boolean) => void;
     onShowNext: () => void;
     progress: { current: number; total: number };
     onGoBack?: () => void;
@@ -26,11 +26,14 @@
   let frageSize = $state(1.5);
   frageGroesse.subscribe(v => frageSize = v);
 
+  let localVerses = $state<Verse[]>([]);
+
   // Reset wenn neue Gruppe kommt
   let prevVersesId = $state<number | null>(null);
   $effect(() => {
     if (verses.length > 0 && verses[0]?.id !== prevVersesId) {
       prevVersesId = verses[0].id ?? null;
+      localVerses = [...verses];
       currentIndex = 0;
       showTip = false;
       showText = false;
@@ -43,7 +46,7 @@
   }
 
   let rangeParts = $derived(splitBookRange(bookRange));
-  let currentVerse = $derived(verses[currentIndex]);
+  let currentVerse = $derived(localVerses[currentIndex]);
   let stelleParts = $derived(currentVerse ? splitStelle(currentVerse.stelle) : { book: '', chapvers: '' });
   let tipp = $derived(currentVerse ? getLastWords(currentVerse.text, woerter) : '');
   let vorlesenText = $derived(
@@ -57,11 +60,17 @@
 
   function rate(grade: number) {
     if (!currentVerse) return;
-    onRate(currentVerse.id!, grade);
+    onRate(currentVerse.id!, grade, !!currentVerse.relearning);
+    
+    const isRelearning = !!currentVerse.relearning;
+    if (grade < 2) {
+      localVerses = [...localVerses, { ...currentVerse, relearning: true }];
+    }
+    
     showTip = false;
     showText = false;
     currentIndex++;
-    if (currentIndex >= verses.length) {
+    if (currentIndex >= localVerses.length) {
       onShowNext();
     }
   }
@@ -93,14 +102,14 @@
     <h2 class="text-xl font-bold text-white truncate flex items-center justify-center gap-2">
       <span class="material-icons text-zinc-500 text-lg">auto_stories</span>
       {rangeParts.book} {rangeParts.sub}
-      <span class="text-xs font-bold text-zinc-500 ml-2">{currentIndex + 1} / {verses.length}</span>
+      <span class="text-xs font-bold text-zinc-500 ml-2">{currentIndex + 1} / {localVerses.length}</span>
     </h2>
   </div>
 
   <!-- Scrollable Answer Area -->
   <div class="flex-1 overflow-y-auto p-4 flex flex-col">
     <div class="m-auto w-full max-w-md">
-      {#if currentVerse && currentIndex < verses.length}
+      {#if currentVerse && currentIndex < localVerses.length}
         {#if !showText}
           <!-- Frage: Buchbereich groß anzeigen -->
           <div class="text-center w-full mb-4">
@@ -145,7 +154,7 @@
   </div>
 
   <!-- Fixed Bottom Buttons -->
-  {#if currentVerse && currentIndex < verses.length}
+  {#if currentVerse && currentIndex < localVerses.length}
     <div class="shrink-0 p-4 bg-black border-t border-zinc-900 space-y-3 pb-[calc(env(safe-area-inset-bottom)+5rem)]">
       <div class="max-w-md mx-auto w-full space-y-3">
         {#if !showText}

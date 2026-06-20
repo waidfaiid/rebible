@@ -33,6 +33,52 @@
 	let tagGroups = $state<{ tag: string; verses: Verse[] }[]>([]);
 	let currentTagIndex = $state(0);
 
+	// Gruppen-Bewertungen für Modus 3 & 4 (verseId → grade), werden beim Gruppenabschluss angewendet
+	let currentGroupGrades = $state(new Map<number, number>());
+
+	// Returns the capitalised suffix used for per-mode DB fields (e.g. 'Stelle', 'Vers').
+	function getModeKey(m: 'stelle' | 'vers' | 'buch' | 'thema'): 'Stelle' | 'Vers' | 'Buch' | 'Thema' {
+		return (m.charAt(0).toUpperCase() + m.slice(1)) as 'Stelle' | 'Vers' | 'Buch' | 'Thema';
+	}
+
+	// Reads the per-mode SR values from a verse, falling back to sensible defaults.
+	function getModeValues(verse: Verse, modeKey: string) {
+		const v = verse as Record<string, any>;
+		return {
+			easeFactor: v[`easeFactor${modeKey}`] ?? 2.5,
+			interval:   v[`interval${modeKey}`]   ?? 1,
+			reviewCount: v[`reviewCount${modeKey}`] ?? 0,
+		};
+	}
+
+	// Returns the DB update object for a given mode after a review.
+	function buildModeUpdate(
+		modeKey: string,
+		result: { easeFactor: number; interval: number; nextReview: string },
+		reviewCount: number,
+		failed: boolean
+	): Record<string, unknown> {
+		return {
+			[`easeFactor${modeKey}`]:  result.easeFactor,
+			[`interval${modeKey}`]:    failed ? 1 : result.interval,
+			[`nextReview${modeKey}`]:  result.nextReview,
+			[`lastReview${modeKey}`]:  new Date().toISOString(),
+			[`reviewCount${modeKey}`]: failed ? 0 : reviewCount + 1,
+		};
+	}
+
+	// For Gemischt-Modus: choose the direction that is actually due;
+	// if both (or neither) are due, pick randomly.
+	function pickCardModeForVerse(verse: Verse): 'stelle' | 'vers' {
+		const morgen = new Date();
+		morgen.setHours(23, 59, 59, 999);
+		const stelleDue = !verse.nextReviewStelle || new Date(verse.nextReviewStelle) <= morgen;
+		const versDue   = !verse.nextReviewVers   || new Date(verse.nextReviewVers)   <= morgen;
+		if (stelleDue && !versDue) return 'stelle';
+		if (versDue   && !stelleDue) return 'vers';
+		return Math.random() < 0.5 ? 'stelle' : 'vers';
+	}
+
 	onMount(async () => {
 		// Get mode from URL
 		const modeParam = $page.url.searchParams.get('mode') as any;
@@ -49,128 +95,135 @@
 		const morgen = new Date();
 		morgen.setHours(23, 59, 59, 999);
 
-		const faellig = allVerses.filter(v => {
-			const next = v.nextReview ? new Date(v.nextReview) : new Date();
-			return next <= morgen;
-		});
-
-		if (faellig.length === 0) {
-			showToast('Heute keine Verse fällig – super gemacht!');
-			setTimeout(() => goto('/'), 2000);
-			return;
-		}
-
-		// queue immer befüllen – rateGroupVerse braucht es für die Suche
-		queue = [...faellig];
-
 		if (mode === 'buch') {
-			await prepareBookRanges(faellig);
+			// Gruppenlogik bestimmt intern welche Gruppen fällig sind
+			await prepareBookRanges(allVerses, morgen);
 			if (bookRanges.length === 0) {
-				showToast('Keine Verse für den Buch-Modus gefunden');
+				showToast('Heute keine Buchbereiche fällig – super gemacht!');
 				setTimeout(() => goto('/'), 2000);
 				return;
 			}
+			// queue mit allen Versen der fälligen Gruppen befüllen
+			queue = bookRanges.flatMap(g => g.verses);
 		} else if (mode === 'thema') {
-			await prepareTagGroups(faellig);
+			await prepareTagGroups(allVerses, morgen);
 			if (tagGroups.length === 0) {
-				showToast('Keine Verse mit Themen-Tags gefunden');
+				showToast('Heute keine Themen fällig – super gemacht!');
 				setTimeout(() => goto('/'), 2000);
 				return;
 			}
+			queue = tagGroups.flatMap(g => g.verses);
 		} else {
+			// Modus 1, 2, Gemischt: pro Vers fällig prüfen
+			const faellig = allVerses.filter(v => {
+				if (mode === 'gemischt') {
+					const stelleDue = !v.nextReviewStelle || new Date(v.nextReviewStelle) <= morgen;
+					const versDue   = !v.nextReviewVers   || new Date(v.nextReviewVers)   <= morgen;
+					return stelleDue || versDue;
+				}
+				const modeKey = getModeKey(mode as 'stelle' | 'vers');
+				const v2 = v as Record<string, any>;
+				const nextDate = v2[`nextReview${modeKey}`];
+				const next = nextDate ? new Date(nextDate) : new Date(0);
+				return next <= morgen;
+			});
+
+			if (faellig.length === 0) {
+				showToast('Heute keine Verse fällig – super gemacht!');
+				setTimeout(() => goto('/'), 2000);
+				return;
+			}
+
 			queue = faellig.sort(() => Math.random() - 0.5);
 			index = 0;
 			showTip = false;
 			showText = false;
 			currentVerse = queue[0];
 			if (mode === 'gemischt') {
-				currentCardMode = Math.random() < 0.5 ? 'stelle' : 'vers';
+				currentCardMode = pickCardModeForVerse(queue[0]);
 			}
 		}
 	}
 
-	async function prepareBookRanges(faellig: Verse[]) {
-		// Group verses by book
+	async function prepareBookRanges(allVerses: Verse[], morgen: Date) {
+		// Alle Verse nach Buch gruppieren
 		const bookGroups: { [book: string]: Verse[] } = {};
-		
-		faellig.forEach(verse => {
+		allVerses.forEach(verse => {
 			const { book } = splitStelle(verse.stelle);
 			if (!bookGroups[book]) bookGroups[book] = [];
 			bookGroups[book].push(verse);
 		});
 
 		bookRanges = [];
-		
-		// Create ranges for each book
+
 		Object.entries(bookGroups).forEach(([book, bookVerses]) => {
-			// Sort by chapter/verse
+			// Nach Kapitel/Vers sortieren
 			bookVerses.sort((a, b) => {
 				const aMatch = a.stelle.match(/(\d+)(?:[,:](\d+))?/);
 				const bMatch = b.stelle.match(/(\d+)(?:[,:](\d+))?/);
 				if (!aMatch || !bMatch) return 0;
-				
 				const aChap = parseInt(aMatch[1]);
 				const bChap = parseInt(bMatch[1]);
 				if (aChap !== bChap) return aChap - bChap;
-				
 				const aVers = aMatch[2] ? parseInt(aMatch[2]) : 0;
 				const bVers = bMatch[2] ? parseInt(bMatch[2]) : 0;
 				return aVers - bVers;
 			});
 
-			// Create ranges of max 5 verses, evenly distributed
+			// In Gruppen von max. 5 aufteilen
 			const totalVerses = bookVerses.length;
+			const chunks: Verse[][] = [];
 			if (totalVerses <= 5) {
-				// If 5 or fewer verses, just use the book name
-				bookRanges.push({ range: book, verses: bookVerses });
+				chunks.push(bookVerses);
 			} else {
-				// More than 5 verses, split evenly
 				const numGroups = Math.ceil(totalVerses / 5);
 				const baseSize = Math.floor(totalVerses / numGroups);
 				let remainder = totalVerses % numGroups;
-
-				let currentIndex = 0;
+				let idx = 0;
 				for (let i = 0; i < numGroups; i++) {
 					const groupSize = baseSize + (remainder > 0 ? 1 : 0);
 					remainder--;
-					
-					const rangeVerses = bookVerses.slice(currentIndex, currentIndex + groupSize);
-					currentIndex += groupSize;
-
-					const firstVerse = rangeVerses[0];
-					const lastVerse = rangeVerses[rangeVerses.length - 1];
-					
-					let rangeName = book;
-					if (rangeVerses.length > 1) {
-						const firstMatch = firstVerse.stelle.match(/(\d+)(?:[,:](\d+))?/);
-						const lastMatch = lastVerse.stelle.match(/(\d+)(?:[,:](\d+))?/);
-						if (firstMatch && lastMatch) {
-							const firstChap = firstMatch[1];
-							const lastChap = lastMatch[1];
-							if (firstChap === lastChap) {
-								rangeName += ` ${firstChap}`;
-							} else {
-								rangeName += ` ${firstChap}–${lastChap}`;
-							}
-						}
-					} else {
-						const { chapvers } = splitStelle(firstVerse.stelle);
-						rangeName += ` ${chapvers}`;
-					}
-					
-					bookRanges.push({ range: rangeName, verses: rangeVerses });
+					chunks.push(bookVerses.slice(idx, idx + groupSize));
+					idx += groupSize;
 				}
 			}
+
+			// Nur Gruppen aufnehmen, deren schwächster Vers heute fällig ist
+			chunks.forEach(rangeVerses => {
+				const isDue = rangeVerses.some(v => {
+					const nextDate = (v as Record<string, any>).nextReviewBuch;
+					// Nie gelernt (kein Datum) = immer fällig
+					if (!nextDate) return true;
+					return new Date(nextDate) <= morgen;
+				});
+				if (!isDue) return;
+
+				const firstVerse = rangeVerses[0];
+				const lastVerse = rangeVerses[rangeVerses.length - 1];
+				let rangeName = book;
+				if (rangeVerses.length > 1) {
+					const firstMatch = firstVerse.stelle.match(/(\d+)(?:[,:](\d+))?/);
+					const lastMatch = lastVerse.stelle.match(/(\d+)(?:[,:](\d+))?/);
+					if (firstMatch && lastMatch) {
+						const firstChap = firstMatch[1];
+						const lastChap = lastMatch[1];
+						rangeName += firstChap === lastChap ? ` ${firstChap}` : ` ${firstChap}–${lastChap}`;
+					}
+				} else {
+					const { chapvers } = splitStelle(firstVerse.stelle);
+					rangeName += ` ${chapvers}`;
+				}
+				bookRanges.push({ range: rangeName, verses: rangeVerses });
+			});
 		});
 
 		currentBookRangeIndex = 0;
 	}
 
-	async function prepareTagGroups(faellig: Verse[]) {
-		// Group verses by tags
+	async function prepareTagGroups(allVerses: Verse[], morgen: Date) {
+		// Alle Verse nach Tags gruppieren
 		const tagMap: { [tag: string]: Verse[] } = {};
-		
-		faellig.forEach(verse => {
+		allVerses.forEach(verse => {
 			const tags = Array.isArray(verse.tags) ? verse.tags : [verse.tags].filter(Boolean);
 			tags.forEach(tag => {
 				if (!tagMap[tag]) tagMap[tag] = [];
@@ -179,15 +232,22 @@
 		});
 
 		tagGroups = [];
-		
-		// Create groups of max 5 verses per tag
+
+		// Gruppen von max. 5 je Tag – nur wenn schwächster Vers fällig ist
 		Object.entries(tagMap).forEach(([tag, tagVerses]) => {
 			for (let i = 0; i < tagVerses.length; i += 5) {
 				const chunk = tagVerses.slice(i, i + 5);
-				tagGroups.push({ tag, verses: chunk });
+				const isDue = chunk.some(v => {
+					const nextDate = (v as Record<string, any>).nextReviewThema;
+					if (!nextDate) return true;
+					return new Date(nextDate) <= morgen;
+				});
+				if (isDue) {
+					tagGroups.push({ tag, verses: chunk });
+				}
 			}
 		});
-		
+
 		currentTagIndex = 0;
 	}
 
@@ -203,14 +263,24 @@
 	async function rate(grade: number) {
 		if (!currentVerse) return;
 
-		const result = calculateSM2(currentVerse, grade);
-		await db.verse.update(currentVerse.id!, {
-			easeFactor: result.easeFactor,
-			interval: result.interval,
-			nextReview: result.nextReview,
-			lastReview: new Date().toISOString(),
-			reviewCount: grade >= 2 ? (currentVerse.reviewCount || 0) + 1 : currentVerse.reviewCount || 0
-		});
+		const isRelearning = !!currentVerse.relearning;
+		// For Gemischt-Modus, use the direction that was actually shown.
+		const effectiveMode = mode === 'gemischt' ? currentCardMode : (mode as 'stelle' | 'vers' | 'buch' | 'thema');
+		const modeKey = getModeKey(effectiveMode);
+		const vals = getModeValues(currentVerse, modeKey);
+
+		if (grade < 2) {
+			if (!isRelearning) {
+				const result = calculateSM2(vals.easeFactor, vals.interval, vals.reviewCount, grade);
+				await db.verse.update(currentVerse.id!, buildModeUpdate(modeKey, result, vals.reviewCount, true));
+			}
+			queue = [...queue, { ...currentVerse, relearning: true }];
+		} else {
+			if (!isRelearning) {
+				const result = calculateSM2(vals.easeFactor, vals.interval, vals.reviewCount, grade);
+				await db.verse.update(currentVerse.id!, buildModeUpdate(modeKey, result, vals.reviewCount, false));
+			}
+		}
 
 		// Next card
 		const newIndex = index + 1;
@@ -224,27 +294,63 @@
 
 		currentVerse = queue[newIndex];
 		if (mode === 'gemischt') {
-			currentCardMode = Math.random() < 0.5 ? 'stelle' : 'vers'; // Randomly choose mode for next card
+			currentCardMode = pickCardModeForVerse(queue[newIndex]);
 		}
 		showTip = false;
 		showText = false;
 	}
 
-	async function rateGroupVerse(verseId: number, grade: number) {
-		const verse = queue.find(v => v.id === verseId);
-		if (!verse) return;
-		
-		const result = calculateSM2(verse, grade);
-		await db.verse.update(verseId, {
-			easeFactor: result.easeFactor,
-			interval: result.interval,
-			nextReview: result.nextReview,
-			lastReview: new Date().toISOString(),
-			reviewCount: grade >= 2 ? (verse.reviewCount || 0) + 1 : verse.reviewCount || 0
-		});
+	function rateGroupVerse(verseId: number, grade: number, relearning = false) {
+		// Beim Relearning (Wiederholung innerhalb der Session) die bessere Note behalten,
+		// damit ein zweiter Versuch belohnt wird.
+		const existing = currentGroupGrades.get(verseId);
+		if (relearning && existing !== undefined) {
+			currentGroupGrades.set(verseId, Math.max(existing, grade));
+		} else {
+			currentGroupGrades.set(verseId, grade);
+		}
 	}
 
-	function nextBookRange() {
+	async function applyGroupSM2(verses: Verse[], modeKey: 'Buch' | 'Thema') {
+		if (verses.length === 0) return;
+
+		// Schwächsten Vers finden: kleinster intervalBuch/Thema-Wert
+		// Nie gelernter Vers (kein Wert) = Intervall 0 → immer schwächster
+		const weakest = verses.reduce((prev, curr) => {
+			const prevIvl = (prev as Record<string, any>)[`interval${modeKey}`] ?? 0;
+			const currIvl = (curr as Record<string, any>)[`interval${modeKey}`] ?? 0;
+			return currIvl < prevIvl ? curr : prev;
+		}, verses[0]);
+
+		const weakestVals = getModeValues(weakest, modeKey);
+
+		// Schlechteste Note aus allen Bewertungen dieser Gruppe ermitteln
+		const gradedVerseIds = verses.map(v => v.id!);
+		const grades = gradedVerseIds
+			.map(id => currentGroupGrades.get(id))
+			.filter((g): g is number => g !== undefined);
+		const worstGrade = grades.length > 0 ? Math.min(...grades) : 4;
+
+		// Einmalige SM-2-Berechnung auf Basis des schwächsten Verses
+		const result = calculateSM2(
+			weakestVals.easeFactor,
+			weakestVals.interval,
+			weakestVals.reviewCount,
+			worstGrade
+		);
+
+		// Ergebnis auf alle Verse der Gruppe schreiben
+		await Promise.all(
+			verses.map(v =>
+				db.verse.update(v.id!, buildModeUpdate(modeKey, result, weakestVals.reviewCount, worstGrade < 2))
+			)
+		);
+
+		currentGroupGrades = new Map();
+	}
+
+	async function nextBookRange() {
+		await applyGroupSM2(bookRanges[currentBookRangeIndex].verses, 'Buch');
 		currentBookRangeIndex++;
 		if (currentBookRangeIndex >= bookRanges.length) {
 			showToast('Alle Buchbereiche abgeschlossen!');
@@ -252,7 +358,8 @@
 		}
 	}
 
-	function nextTag() {
+	async function nextTag() {
+		await applyGroupSM2(tagGroups[currentTagIndex].verses, 'Thema');
 		currentTagIndex++;
 		if (currentTagIndex >= tagGroups.length) {
 			showToast('Alle Themen abgeschlossen!');

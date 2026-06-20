@@ -29,10 +29,7 @@
 	let simVorschau = $state<{ easeFactor: number; interval: number; nextReview: string } | null>(null);
 
 	function simGrade(grade: number) {
-		simVorschau = calculateSM2(
-			{ ...verse, easeFactor: efValue, interval: intervalValue, reviewCount: reviewCountValue },
-			grade
-		);
+		simVorschau = calculateSM2(efValue, intervalValue, reviewCountValue, grade);
 	}
 
 	function simUebernehmen() {

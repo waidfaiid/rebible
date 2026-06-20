@@ -14,7 +14,7 @@
 
   function getDays(grade: number): number | null {
     if (!verse || !showDays) return null;
-    return calculateSM2(verse, grade).interval;
+    return calculateSM2(verse.easeFactor ?? 2.5, verse.interval ?? 1, verse.reviewCount ?? 0, grade).interval;
   }
 
   function daysLabel(grade: number): string {
