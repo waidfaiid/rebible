@@ -1,4 +1,13 @@
 /**
+ * Gibt die ersten N Wörter eines Textes zurück, mit " …" dahinter.
+ */
+export function getFirstWords(text: string, n: number): string {
+	const words = text.trim().split(/\s+/);
+	if (words.length <= n) return text;
+	return words.slice(0, n).join(' ') + ' …';
+}
+
+/**
  * Gibt die letzten N Wörter eines Textes zurück, mit "… " davor.
  */
 export function getLastWords(text: string, n: number): string {

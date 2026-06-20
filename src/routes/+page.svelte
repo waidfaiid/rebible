@@ -73,7 +73,7 @@
 	const TOTAL_H = BAR_BASE + LABEL_H;  // 92
 </script>
 
-<div class="min-h-screen bg-black flex flex-col pb-20 pt-[env(safe-area-inset-top)]">
+<div class="min-h-full bg-black flex flex-col pb-20">
 	<!-- Header -->
 	<div class="px-5 pt-8 pb-2">
 		<h1 class="text-4xl font-black text-red-600 tracking-tighter">ReBible</h1>

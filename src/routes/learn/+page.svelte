@@ -45,7 +45,7 @@
 	function getModeValues(verse: Verse, modeKey: string) {
 		const v = verse as Record<string, any>;
 		return {
-			easeFactor: v[`easeFactor${modeKey}`] ?? 2.5,
+			easeFactor: v[`easeFactor${modeKey}`] ?? 2.0,
 			interval:   v[`interval${modeKey}`]   ?? 1,
 			reviewCount: v[`reviewCount${modeKey}`] ?? 0,
 		};
@@ -396,6 +396,8 @@
 	}
 </script>
 
+<!-- Scroll-Boundary: verhindert dass Karten-Komponenten über den Viewport wachsen -->
+<div class="flex-1 overflow-hidden flex flex-col min-h-0">
 {#if mode === 'stelle' && currentVerse}
 	<LearningCard
 		verse={currentVerse}
@@ -465,7 +467,7 @@
 		/>
 	{/if}
 {:else}
-	<div class="h-full bg-black flex items-center justify-center p-5">
+	<div class="flex-1 bg-black flex items-center justify-center p-5">
 		<div class="bg-zinc-900 rounded-3xl shadow-sm border border-zinc-800 p-8 text-center max-w-sm w-full">
 			<div class="animate-pulse flex flex-col items-center">
 				<div class="bg-zinc-800 text-zinc-400 p-4 rounded-2xl mb-4">
@@ -483,3 +485,4 @@
 		</div>
 	</div>
 {/if}
+</div>

@@ -1,7 +1,6 @@
 <script lang="ts">
   import type { Verse } from '$lib/db';
-  import { splitStelle, getLastWords } from '$lib/utils';
-  import { tippWoerter, frageFontSize, frageGroesse } from '$lib/stores';
+  import { frageFontSize, frageGroesse } from '$lib/stores';
   import RatingButtons from './RatingButtons.svelte';
   import VorlesenButton from './VorlesenButton.svelte';
 
@@ -14,11 +13,7 @@
     onGoBack?: () => void;
   } = $props();
 
-  let currentIndex = $state(0);
-  let showTip = $state(false);
   let showText = $state(false);
-  let woerter = $state(5);
-  tippWoerter.subscribe(v => woerter = v);
 
   let fontSize = $state(1.8);
   frageFontSize.subscribe(v => fontSize = v);
@@ -26,50 +21,29 @@
   let frageSize = $state(1.5);
   frageGroesse.subscribe(v => frageSize = v);
 
-  let localVerses = $state<Verse[]>([]);
-
-  // Reset wenn neue Gruppe kommt
-  let prevVersesId = $state<number | null>(null);
+  // Reset wenn neue Gruppe geladen wird
+  let prevFirstId = $state<number | null>(null);
   $effect(() => {
-    if (verses.length > 0 && verses[0]?.id !== prevVersesId) {
-      prevVersesId = verses[0].id ?? null;
-      localVerses = [...verses];
-      currentIndex = 0;
-      showTip = false;
+    const firstId = verses[0]?.id ?? null;
+    if (firstId !== prevFirstId) {
+      prevFirstId = firstId;
       showText = false;
     }
   });
 
-  let currentVerse = $derived(localVerses[currentIndex]);
-  let stelleParts = $derived(currentVerse ? splitStelle(currentVerse.stelle) : { book: '', chapvers: '' });
-  let tipp = $derived(currentVerse ? getLastWords(currentVerse.text, woerter) : '');
   let vorlesenText = $derived(
-    currentVerse ? `${currentVerse.stelle} – ${currentVerse.text}` : ''
+    verses.map(v => `${v.stelle} – ${v.text}`).join('. ')
   );
 
-  function reveal() {
-    showTip = false;
-    showText = true;
-  }
-
-  function rate(grade: number) {
-    if (!currentVerse) return;
-    onRate(currentVerse.id!, grade, !!currentVerse.relearning);
-    
-    if (grade < 2) {
-      localVerses = [...localVerses, { ...currentVerse, relearning: true }];
+  function rateAll(grade: number) {
+    for (const v of verses) {
+      onRate(v.id!, grade, false);
     }
-    
-    showTip = false;
-    showText = false;
-    currentIndex++;
-    if (currentIndex >= localVerses.length) {
-      onShowNext();
-    }
+    onShowNext();
   }
 </script>
 
-<div class="h-full bg-black flex flex-col overflow-hidden relative">
+<div class="flex-1 min-h-0 bg-black flex flex-col overflow-hidden">
   <!-- Top Bar (Progress) -->
   <div class="bg-black/90 px-3 py-2 shrink-0 flex items-center gap-3 pt-[env(safe-area-inset-top)]">
     <button
@@ -90,86 +64,53 @@
     <span class="text-[10px] font-bold text-zinc-500 tracking-wider w-8 text-right">{progress.current}/{progress.total}</span>
   </div>
 
-  <!-- Header (Context) -->
-  <div class="px-4 py-2 shrink-0 text-center border-b border-zinc-800">
-    <h2 class="text-sm font-bold text-zinc-400 truncate flex items-center justify-center gap-2">
-      <span class="material-icons text-zinc-500 text-base">category</span>
-      Thema-Modus
-      <span class="text-xs font-bold text-zinc-500 ml-2">{currentIndex + 1} / {localVerses.length}</span>
-    </h2>
-  </div>
+  <!-- Scrollable Content -->
+  <div class="flex-1 min-h-0 overflow-y-auto p-4 flex flex-col">
+    <div class="max-w-md mx-auto w-full flex flex-col gap-4">
 
-  <!-- Scrollable Answer Area -->
-  <div class="flex-1 overflow-y-auto p-4 flex flex-col">
-    <div class="m-auto w-full max-w-md">
-      {#if currentVerse && currentIndex < localVerses.length}
-        {#if !showText}
-          <!-- Frage: Thema groß anzeigen -->
-          <div class="text-center w-full mb-4">
-            <div class="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mb-2">Thema</div>
-            <div class="font-bold text-white leading-tight" style="font-size: {frageSize}rem;">{tag}</div>
+      {#if !showText}
+        <!-- Frage: nur Thema anzeigen -->
+        <div class="text-center py-8">
+          <div class="flex items-center justify-center gap-2 mb-2">
+            <span class="material-icons text-zinc-500 text-base">category</span>
+            <span class="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Thema</span>
           </div>
-          {#if showTip}
-            <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 text-center shadow-sm">
-              <div class="text-[10px] text-zinc-500 font-bold uppercase tracking-wider mb-2">Tipp – letzte {woerter} Wörter</div>
-              <div class="text-white font-medium text-xl">... {tipp}</div>
-            </div>
-          {/if}
-        {:else}
-          <div class="text-center mb-6">
-            <div class="text-2xl font-bold text-white mb-3">
-              {stelleParts.book} {stelleParts.chapvers}
-            </div>
-            <div class="text-white leading-snug font-semibold" style="font-size: {fontSize}rem;">
-              {currentVerse.text}
-            </div>
-          </div>
-        {/if}
+          <div class="font-bold text-white leading-tight" style="font-size: {frageSize}rem;">{tag}</div>
+        </div>
+
       {:else}
-        <!-- Alle Verse dieser Gruppe abgeschlossen -->
-        <div class="bg-zinc-900 rounded-3xl shadow-sm border border-zinc-800 p-8 text-center">
-          <div class="text-green-500 mb-4 flex justify-center">
-            <span class="material-icons text-5xl">task_alt</span>
-          </div>
-          <h3 class="text-xl font-bold text-white mb-2">Thema abgeschlossen</h3>
-          <p class="text-zinc-400 mb-6">Du hast alle Verse zu diesem Thema gelernt.</p>
-          <button
-            onclick={onShowNext}
-            class="w-full bg-red-600 text-white px-6 py-4 rounded-2xl hover:bg-red-700 active:scale-95 font-bold transition-all duration-200 shadow-sm shadow-red-900/20"
-          >
-            Nächstes Thema
-          </button>
+        <!-- Antwort: alle Verse mit vollem Text -->
+        <div class="space-y-2">
+          {#each verses as v}
+            <div class="bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 leading-snug" style="font-size: {fontSize}rem;">
+              <span class="font-bold text-white">{v.stelle}</span>
+              <span class="text-zinc-200 ml-2">{v.text}</span>
+            </div>
+          {/each}
         </div>
       {/if}
+
     </div>
   </div>
 
-  <!-- Fixed Bottom Buttons -->
-  {#if currentVerse && currentIndex < localVerses.length}
-    <div class="shrink-0 p-4 bg-black border-t border-zinc-900 space-y-3 pb-[calc(env(safe-area-inset-bottom)+5rem)]">
-      <div class="max-w-md mx-auto w-full space-y-3">
-        {#if !showText}
-          {#if !showTip}
-            <button
-              onclick={() => showTip = true}
-              class="w-full bg-zinc-900 text-white border border-zinc-800 px-6 py-4 rounded-2xl hover:bg-zinc-800 active:scale-95 font-bold text-lg transition-all duration-200 flex items-center justify-center gap-2 shadow-sm"
-            >
-              <span class="material-icons text-zinc-400">lightbulb</span>
-              Tipp anzeigen
-            </button>
-          {/if}
-          <button
-            onclick={reveal}
-            class="w-full bg-red-600 text-white px-6 py-5 rounded-2xl hover:bg-red-700 active:scale-95 font-bold text-xl transition-all duration-200 flex items-center justify-center gap-2 shadow-sm shadow-red-900/20"
-          >
-            <span class="material-icons">visibility</span>
-            Vers aufdecken
-          </button>
-        {:else}
-          <RatingButtons onRate={rate} verse={currentVerse} />
-          <VorlesenButton text={vorlesenText} />
-        {/if}
-      </div>
-    </div>
-  {/if}
+  <!-- Platzhalter damit Content nicht hinter den fixen Buttons verschwindet -->
+  <div class="shrink-0 {showText ? 'h-56' : 'h-24'} pb-[env(safe-area-inset-bottom)]"></div>
+</div>
+
+<!-- Buttons: fixed am unteren Bildschirmrand, immer sichtbar -->
+<div class="fixed bottom-0 left-0 right-0 z-40 bg-black border-t border-zinc-900 p-4 pb-[calc(env(safe-area-inset-bottom)+5rem)]">
+  <div class="max-w-lg mx-auto w-full space-y-3">
+    {#if !showText}
+      <button
+        onclick={() => showText = true}
+        class="w-full bg-red-600 text-white px-6 py-5 rounded-2xl hover:bg-red-700 active:scale-95 font-bold text-xl transition-all duration-200 flex items-center justify-center gap-2 shadow-sm shadow-red-900/20"
+      >
+        <span class="material-icons">visibility</span>
+        Aufdecken
+      </button>
+    {:else}
+      <RatingButtons onRate={rateAll} dreierModus={true} />
+      <VorlesenButton text={vorlesenText} />
+    {/if}
+  </div>
 </div>
