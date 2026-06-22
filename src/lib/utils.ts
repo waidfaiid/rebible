@@ -20,15 +20,36 @@ export function getLastWords(text: string, n: number): string {
  * Zerlegt eine Bibelstelle wie "Johannes 3,16" in Buch und Kapitel:Vers.
  */
 export function splitStelle(stelle: string): { book: string; chapvers: string } {
-	const regex = /^(.+?)\s+(\d+)(?:[,:](\d+))?$/;
-	const m = stelle.match(regex);
+	const s = stelle.trim();
+
+	// Sonderfall: Psalmen-Notation
+	// Nutzer geben häufig "Psalm 23" ein (ohne , und ohne :).
+	// In diesem Fall soll "23" als Ganzes in `chapvers` landen (kein Split nach 2,3).
+	//
+	// Gleichzeitig sollen weiterhin Notationen wie "Psalm 23,1" funktionieren.
+	const psalmOnly = /^Psalm\s+(\d+)\s*$/i;
+	const psalmWithVerse = /^Psalm\s+(\d+)\s*[,:]\s*(\d+(?:\s*[-–]\s*\d+)?)\s*$/i;
+
+	const mPsalmOnly = s.match(psalmOnly);
+	const mPsalmWithVerse = s.match(psalmWithVerse);
+
+	if (mPsalmOnly) {
+		return { book: 'Psalm', chapvers: mPsalmOnly[1] };
+	}
+	if (mPsalmWithVerse) {
+		return { book: 'Psalm', chapvers: mPsalmWithVerse[1] + ',' + mPsalmWithVerse[2] };
+	}
+
+	// Standardfälle: "Buch Kapitel,Vers" oder "Buch Kapitel:Vers" oder "Buch Kapitel"
+	const regex = /^(.+?)\s+(\d+)(?:[,:](\d+(?:\s*[-–]\s*\d+)?))?$/;
+	const m = s.match(regex);
 	if (m) {
 		return {
 			book: m[1],
 			chapvers: m[2] + (m[3] ? ',' + m[3] : '')
 		};
 	}
-	return { book: stelle, chapvers: '' };
+	return { book: s, chapvers: '' };
 }
 
 // -------------------------------------------------------------------
@@ -159,9 +180,23 @@ function isCompleteCore(text: string): boolean {
 	return hasFiniteVerb(text);
 }
 
+/** Maximale Wörteranzahl für einen Chunk. */
+const MAX_CHUNK_WORDS = 15;
+
+/** Zählt die Wörter in einem Text. */
+function wordCount(text: string): number {
+	return text.trim().split(/\s+/).filter(w => w).length;
+}
+
+/** Gibt die ersten N Wörter des Textes zurück. */
+function firstNWords(text: string, n: number): string {
+	return text.trim().split(/\s+/).filter(w => w).slice(0, n).join(' ');
+}
+
 /**
  * Sucht die erste sinnvolle Schnittgrenze im bereinigten Text
- * gemäß Prioritätsreihenfolge.
+ * gemäß Prioritätsreihenfolge. Jeder Kandidat darf höchstens
+ * MAX_CHUNK_WORDS Wörter umfassen.
  */
 function findFirstChunk(text: string): string {
 	// Priorität 1: Semikolon
@@ -169,7 +204,7 @@ function findFirstChunk(text: string): string {
 		let idx = 0;
 		while ((idx = text.indexOf(';', idx)) !== -1) {
 			const before = text.slice(0, idx);
-			if (isCompleteCore(before)) return before;
+			if (isCompleteCore(before) && wordCount(before) <= MAX_CHUNK_WORDS) return before;
 			idx++;
 		}
 	}
@@ -180,7 +215,7 @@ function findFirstChunk(text: string): string {
 		let m: RegExpExecArray | null;
 		while ((m = re.exec(text)) !== null) {
 			const before = text.slice(0, m.index + 1);
-			if (isCompleteCore(before)) return before;
+			if (isCompleteCore(before) && wordCount(before) <= MAX_CHUNK_WORDS) return before;
 		}
 	}
 
@@ -190,7 +225,7 @@ function findFirstChunk(text: string): string {
 		let m: RegExpExecArray | null;
 		while ((m = re.exec(text)) !== null) {
 			const before = text.slice(0, m.index);
-			if (isCompleteCore(before)) return before;
+			if (isCompleteCore(before) && wordCount(before) <= MAX_CHUNK_WORDS) return before;
 		}
 	}
 
@@ -200,7 +235,7 @@ function findFirstChunk(text: string): string {
 		let m: RegExpExecArray | null;
 		while ((m = re.exec(text)) !== null) {
 			const before = text.slice(0, m.index);
-			if (isCompleteCore(before)) return before;
+			if (isCompleteCore(before) && wordCount(before) <= MAX_CHUNK_WORDS) return before;
 		}
 	}
 
@@ -209,13 +244,13 @@ function findFirstChunk(text: string): string {
 		let idx = 0;
 		while ((idx = text.indexOf(',', idx)) !== -1) {
 			const before = text.slice(0, idx);
-			if (isCompleteCore(before)) return before;
+			if (isCompleteCore(before) && wordCount(before) <= MAX_CHUNK_WORDS) return before;
 			idx++;
 		}
 	}
 
-	// Keine passende Grenze → ganzen Text zurückgeben
-	return text;
+	// Keine passende Grenze innerhalb des Limits → erste 15 Wörter zurückgeben
+	return firstNWords(text, MAX_CHUNK_WORDS);
 }
 
 /**

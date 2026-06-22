@@ -3,10 +3,11 @@
   import { calculateSM2 } from '$lib/spacedRepetition';
   import { showDaysOnButtons } from '$lib/stores';
 
-  let { onRate, verse = null, dreierModus = false }: {
+  let { onRate, verse = null, dreierModus = false, modeKey = '' }: {
     onRate: (grade: number) => void;
     verse?: Verse | null;
     dreierModus?: boolean;
+    modeKey?: string;
   } = $props();
 
   let showDays = $state(true);
@@ -14,7 +15,11 @@
 
   function getDays(grade: number): number | null {
     if (!verse || !showDays) return null;
-    return calculateSM2(verse.easeFactor ?? 2.0, verse.interval ?? 1, verse.reviewCount ?? 0, grade).interval;
+    const v = verse as Record<string, any>;
+    const ef  = (modeKey && v[`easeFactor${modeKey}`]  != null) ? v[`easeFactor${modeKey}`]  : (verse.easeFactor  ?? 2.0);
+    const ivl = (modeKey && v[`interval${modeKey}`]    != null) ? v[`interval${modeKey}`]    : (verse.interval    ?? 1);
+    const rc  = (modeKey && v[`reviewCount${modeKey}`] != null) ? v[`reviewCount${modeKey}`] : (verse.reviewCount ?? 0);
+    return calculateSM2(ef, ivl, rc, grade).interval;
   }
 
   function daysLabel(grade: number): string {

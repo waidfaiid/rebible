@@ -3,13 +3,16 @@
   import { stelleNormalisieren } from '$lib/bible';
   import { extractFirstChunk } from '$lib/utils';
 
+  type Sm2Werte = { easeFactor: number; interval: number; reviewCount: number; nextReview: string; lastReview: string };
+
   let { show, verse, onSave, onCancel }: {
     show: boolean;
     verse: Verse | null;
     onSave: (
       id: number, stelle: string, text: string, tags: string,
-      sm2: { easeFactor: number; interval: number; reviewCount: number; nextReview: string; lastReview: string },
-      firstChunkManual?: string
+      sm2: Sm2Werte,
+      firstChunkManual?: string,
+      modiSm2?: Record<string, Sm2Werte>
     ) => void;
     onCancel: () => void;
   } = $props();
@@ -30,6 +33,23 @@
   let manualChunk = $state<string | null>(null);
   let loadedVerseId = $state<number | null>(null);
 
+  // Per-Modus SM-2 Lernwerte
+  type ModusKey = 'Stelle' | 'Vers' | 'Buch' | 'Thema';
+  let aktiverModusSm2 = $state<ModusKey>('Stelle');
+  let modiWerte = $state<Record<ModusKey, { ef: number; interval: number; reviewCount: number; nextReview: string; lastReview: string }>>({
+    Stelle: { ef: 2.5, interval: 1, reviewCount: 0, nextReview: '', lastReview: '' },
+    Vers:   { ef: 2.5, interval: 1, reviewCount: 0, nextReview: '', lastReview: '' },
+    Buch:   { ef: 2.5, interval: 1, reviewCount: 0, nextReview: '', lastReview: '' },
+    Thema:  { ef: 2.5, interval: 1, reviewCount: 0, nextReview: '', lastReview: '' },
+  });
+
+  const modusInfos = [
+    { key: 'Stelle' as ModusKey, label: 'M1', sub: 'Stelle→Text', icon: 'format_quote' },
+    { key: 'Vers'   as ModusKey, label: 'M2', sub: 'Text→Stelle', icon: 'explore' },
+    { key: 'Buch'   as ModusKey, label: 'M3', sub: 'Buch',        icon: 'auto_stories' },
+    { key: 'Thema'  as ModusKey, label: 'M4', sub: 'Thema',       icon: 'category' },
+  ];
+
   $effect(() => {
     if (verse) {
       stelleInput = verse.stelle;
@@ -45,6 +65,18 @@
       // Manuelle Chunk-Korrektur aus DB laden
       manualChunk = verse.firstChunkManual ?? null;
       loadedVerseId = verse.id ?? null;
+
+      // Per-Modus Werte initialisieren
+      const v = verse as Record<string, any>;
+      const heute = new Date().toISOString().slice(0, 10);
+      const keys: ModusKey[] = ['Stelle', 'Vers', 'Buch', 'Thema'];
+      for (const key of keys) {
+        modiWerte[key].ef           = v[`easeFactor${key}`]  ?? 2.5;
+        modiWerte[key].interval     = v[`interval${key}`]    ?? 1;
+        modiWerte[key].reviewCount  = v[`reviewCount${key}`] ?? 0;
+        modiWerte[key].nextReview   = v[`nextReview${key}`]  ? (v[`nextReview${key}`] as string).slice(0, 10) : heute;
+        modiWerte[key].lastReview   = v[`lastReview${key}`]  ? (v[`lastReview${key}`] as string).slice(0, 10) : '';
+      }
     }
   });
 
@@ -108,10 +140,34 @@
     if (erkannteStelle) { stelleInput = erkannteStelle; feedback = ''; }
   }
 
+  function resetModusSm2(key: ModusKey) {
+    const morgen = new Date();
+    morgen.setDate(morgen.getDate() + 1);
+    modiWerte[key].ef = 2.5;
+    modiWerte[key].interval = 1;
+    modiWerte[key].reviewCount = 0;
+    modiWerte[key].nextReview = morgen.toISOString().slice(0, 10);
+    modiWerte[key].lastReview = '';
+  }
+
   function submit() {
     if (!verse) return;
     if (!stelleInput.trim() || !textInput.trim()) { alert('Stelle und Text sind Pflichtfelder'); return; }
     const stelle = erkannteStelle || stelleNormalisieren(stelleInput) || stelleInput;
+    const v = verse as Record<string, any>;
+
+    const modiSm2: Record<string, Sm2Werte> = {};
+    for (const key of ['Stelle', 'Vers', 'Buch', 'Thema'] as const) {
+      const m = modiWerte[key];
+      modiSm2[key] = {
+        easeFactor: Math.round(m.ef * 100) / 100,
+        interval: m.interval,
+        reviewCount: m.reviewCount,
+        nextReview: m.nextReview ? new Date(m.nextReview + 'T12:00:00').toISOString() : (v[`nextReview${key}`] || new Date().toISOString()),
+        lastReview: m.lastReview ? new Date(m.lastReview + 'T12:00:00').toISOString() : (v[`lastReview${key}`] || '')
+      };
+    }
+
     onSave(
       verse.id!, stelle, textInput.trim(), tagsInput.trim(),
       {
@@ -121,7 +177,8 @@
         nextReview: nextReviewInput ? new Date(nextReviewInput + 'T12:00:00').toISOString() : (verse.nextReview || new Date().toISOString()),
         lastReview: lastReviewInput ? new Date(lastReviewInput + 'T12:00:00').toISOString() : (verse.lastReview || '')
       },
-      manualChunk ?? undefined
+      manualChunk ?? undefined,
+      modiSm2
     );
   }
 </script>
@@ -260,11 +317,11 @@
         />
       </div>
 
-      <!-- SM-2 Lernwerte -->
+      <!-- SM-2 Lernwerte (Legacy) -->
       <div>
         <div class="flex items-center gap-2 mb-3">
           <div class="h-px flex-1 bg-zinc-800"></div>
-          <span class="text-[10px] font-bold text-zinc-600 uppercase tracking-wider">SM-2 Lernwerte</span>
+          <span class="text-[10px] font-bold text-zinc-600 uppercase tracking-wider">SM-2 Lernwerte (Legacy)</span>
           <div class="h-px flex-1 bg-zinc-800"></div>
         </div>
 
@@ -330,6 +387,103 @@
             <div class="text-[9px] text-zinc-500 font-bold uppercase tracking-wider mt-1">Letzte Wdh.</div>
           </div>
         </div>
+      </div>
+
+      <!-- Lernfortschritt pro Modus -->
+      <div>
+        <div class="flex items-center gap-2 mb-3">
+          <div class="h-px flex-1 bg-zinc-800"></div>
+          <span class="text-[10px] font-bold text-zinc-600 uppercase tracking-wider">Lernfortschritt pro Modus</span>
+          <div class="h-px flex-1 bg-zinc-800"></div>
+        </div>
+
+        <!-- Modus-Tabs -->
+        <div class="grid grid-cols-4 gap-1.5 mb-3">
+          {#each modusInfos as info}
+            <button
+              type="button"
+              onclick={() => aktiverModusSm2 = info.key}
+              class="flex flex-col items-center gap-0.5 py-2 px-1 rounded-xl transition-all active:scale-95 {aktiverModusSm2 === info.key ? 'bg-red-600 text-white' : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'}"
+            >
+              <span class="material-icons text-base">{info.icon}</span>
+              <span class="text-[10px] font-bold">{info.label}</span>
+              <span class="text-[9px] opacity-70 leading-tight">{info.sub}</span>
+            </button>
+          {/each}
+        </div>
+
+        <!-- Werte des aktiven Modus -->
+        <div class="grid grid-cols-3 gap-2 mb-2">
+          <div class="bg-zinc-800 rounded-xl p-3 text-center">
+            <input
+              type="number"
+              bind:value={modiWerte[aktiverModusSm2].ef}
+              min="1.3" max="3.5" step="0.01"
+              class="w-full bg-transparent text-white font-bold text-base text-center focus:outline-none"
+            />
+            <div class="text-[9px] text-zinc-500 font-bold uppercase tracking-wider mt-1">Ease Factor</div>
+          </div>
+          <div class="bg-zinc-800 rounded-xl p-3 text-center">
+            <div class="flex items-center justify-center gap-1">
+              <input
+                type="number"
+                bind:value={modiWerte[aktiverModusSm2].interval}
+                min="1" max="365" step="1"
+                class="w-12 bg-transparent text-white font-bold text-base text-center focus:outline-none"
+              />
+              <span class="text-zinc-500 text-sm font-medium">d</span>
+            </div>
+            <div class="text-[9px] text-zinc-500 font-bold uppercase tracking-wider mt-1">Intervall</div>
+          </div>
+          <div class="bg-zinc-800 rounded-xl p-3 text-center">
+            <div class="flex items-center justify-center gap-2">
+              <button
+                type="button"
+                onclick={() => modiWerte[aktiverModusSm2].reviewCount = Math.max(0, modiWerte[aktiverModusSm2].reviewCount - 1)}
+                class="text-zinc-400 hover:text-white active:scale-95 transition-all"
+              >
+                <span class="material-icons text-base">remove</span>
+              </button>
+              <span class="text-white font-bold text-base w-6 text-center">{modiWerte[aktiverModusSm2].reviewCount}</span>
+              <button
+                type="button"
+                onclick={() => modiWerte[aktiverModusSm2].reviewCount += 1}
+                class="text-zinc-400 hover:text-white active:scale-95 transition-all"
+              >
+                <span class="material-icons text-base">add</span>
+              </button>
+            </div>
+            <div class="text-[9px] text-zinc-500 font-bold uppercase tracking-wider mt-1">Anz. Wdh.</div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2 mb-2">
+          <div class="bg-zinc-800 rounded-xl p-3">
+            <input
+              type="date"
+              bind:value={modiWerte[aktiverModusSm2].nextReview}
+              class="w-full bg-transparent text-white text-sm font-medium focus:outline-none"
+            />
+            <div class="text-[9px] text-zinc-500 font-bold uppercase tracking-wider mt-1">Nächste Wdh.</div>
+          </div>
+          <div class="bg-zinc-800 rounded-xl p-3">
+            <input
+              type="date"
+              bind:value={modiWerte[aktiverModusSm2].lastReview}
+              class="w-full bg-transparent text-white text-sm font-medium focus:outline-none"
+            />
+            <div class="text-[9px] text-zinc-500 font-bold uppercase tracking-wider mt-1">Letzte Wdh.</div>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onclick={() => resetModusSm2(aktiverModusSm2)}
+          class="w-full flex items-center justify-center gap-2 py-2 bg-zinc-800 border border-zinc-700 text-zinc-400 rounded-xl hover:bg-zinc-700 active:scale-95 transition-all text-sm"
+        >
+          <span class="material-icons text-base">restart_alt</span>
+          Diesen Modus zurücksetzen
+        </button>
       </div>
 
     </div>

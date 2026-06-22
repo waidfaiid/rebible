@@ -32,8 +32,11 @@
     }
   });
 
-  let vorlesenText = $derived(
-    verses.map(v => `${v.stelle} – ${v.text}`).join('. ')
+  let vorlesenSegmente = $derived(
+    verses.map(v => ({
+      stelle: v.stelle,
+      text: v.firstChunkManual ?? v.firstChunk ?? extractFirstChunk(v.text)
+    }))
   );
 
   function rateAll(grade: number) {
@@ -115,7 +118,7 @@
       </button>
     {:else}
       <RatingButtons onRate={rateAll} dreierModus={true} />
-      <VorlesenButton text={vorlesenText} />
+      <VorlesenButton segmente={vorlesenSegmente} />
     {/if}
   </div>
 </div>

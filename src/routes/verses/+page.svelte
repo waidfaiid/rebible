@@ -146,19 +146,36 @@
 		setTimeout(() => toastMessage.set(null), 3000);
 	}
 
+	type Sm2Werte = { easeFactor: number; interval: number; reviewCount: number; nextReview: string; lastReview: string };
+
 	async function saveEdit(
 		id: number, stelle: string, text: string, tags: string,
-		sm2: { easeFactor: number; interval: number; reviewCount: number; nextReview: string; lastReview: string },
-		firstChunkManual?: string
+		sm2: Sm2Werte,
+		firstChunkManual?: string,
+		modiSm2?: Record<string, Sm2Werte>
 	) {
 		const tagArray = tags ? tags.split(',').map(t => t.trim()).filter(t => t) : [];
 		const firstChunk = extractFirstChunk(text);
-		const updates: Partial<Verse> = {
+		const updates: Partial<Verse> & Record<string, unknown> = {
 			stelle, text, tags: tagArray, ...sm2,
 			firstChunk,
 			firstChunkManual: firstChunkManual ?? undefined
 		};
-		await db.verse.update(id, updates);
+
+		if (modiSm2) {
+			for (const key of ['Stelle', 'Vers', 'Buch', 'Thema'] as const) {
+				const m = modiSm2[key];
+				if (m) {
+					updates[`easeFactor${key}`]  = m.easeFactor;
+					updates[`interval${key}`]    = m.interval;
+					updates[`reviewCount${key}`] = m.reviewCount;
+					updates[`nextReview${key}`]  = m.nextReview;
+					updates[`lastReview${key}`]  = m.lastReview || undefined;
+				}
+			}
+		}
+
+		await db.verse.update(id, updates as Partial<Verse>);
 		verses.update(v => v.map(verse => verse.id === id ? { ...verse, ...updates } : verse));
 		showEditModal.set(false);
 		selectedVerse.set(null);

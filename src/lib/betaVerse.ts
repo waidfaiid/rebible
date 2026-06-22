@@ -15,7 +15,7 @@ export const betaVerses: Omit<Verse, 'id'>[] = [
 	},
 	{
 		stelle: 'Psalm 23',
-		text: 'Ein Psalm Davids. Der HERR ist mein Hirte; mir wird nichts mangeln. Er weidet mich auf grünen Auen und führt mich zu stillen Wassern. Er erquickt meine Seele; er führt mich auf rechter Straße um seines Namens willen. Und wenn ich auch wanderte durchs Tal der Todesschatten, so fürchte ich kein Unglück, denn du bist bei mir; dein Stecken und dein Stab, die trösten mich. Du bereitest vor mir einen Tisch angesichts meiner Feinde; du hast mein Haupt mit Öl gesalbt, mein Becher fließt über. Nur Güte und Gnade werden mir folgen mein Leben lang, und ich werde bleiben im Haus des HERRN immerdar.',
+		text: 'Der HERR ist mein Hirte, mir wird nichts mangeln. Er weidet mich auf einer grünen Aue und führet mich zum frischen Wasser. Er erquicket meine Seele. Er führet mich auf rechter Straße um seines Namens willen. Und ob ich schon wanderte im finstern Tal, fürchte ich kein Unglück; denn du bist bei mir, dein Stecken und Stab trösten mich. Du bereitest vor mir einen Tisch im Angesicht meiner Feinde. Du salbest mein Haupt mit Öl und schenkest mir voll ein. Gutes und Barmherzigkeit werden mir folgen mein Leben lang, und ich werde bleiben im Hause des HERRN immerdar',
 		tags: [],
 		interval: 1,
 		easeFactor: 2.5,
@@ -55,7 +55,7 @@ export const betaVerses: Omit<Verse, 'id'>[] = [
 	},
 	{
 		stelle: 'Johannes 14,23',
-		text: 'Jesus antwortete und sprach zu ihm: Wenn jemand mich liebt, so wird er mein Wort befolgen, und mein Vater wird ihn lieben, und wir werden zu ihm kommen und Wohnung bei ihm machen.',
+		text: 'Wenn jemand mich liebt, so wird er mein Wort befolgen, und mein Vater wird ihn lieben, und wir werden zu ihm kommen und Wohnung bei ihm machen.',
 		tags: ['Gehorsam'],
 		interval: 1,
 		easeFactor: 2.5,

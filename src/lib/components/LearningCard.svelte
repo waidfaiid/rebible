@@ -104,7 +104,7 @@
           Aufdecken
         </button>
       {:else}
-        <RatingButtons {onRate} {verse} />
+        <RatingButtons {onRate} {verse} modeKey="Stelle" />
         <VorlesenButton text={vorlesenText} />
       {/if}
     </div>

@@ -70,7 +70,9 @@ export const BUECHER = [
 export function stelleNormalisieren(raw: string): string | null {
   const input = stripUnsichtbar(raw);
   // \d+[a-z]? allows verse suffixes like "10b"; range separators: - und bis & _ .
-  const regex = /^([A-Za-z0-9äöüÄÖÜß\.\-\s]+?)\s+(\d+)\s*[,:]?\s*(\d+)[a-z]?(?:\s*(?:-|und|bis|[&_.'])\s*(\d+)[a-z]?)?$/i;
+  // The verse part is fully optional; the separator [,:] is required when a verse
+  // is present so that "Psalm 23" is NOT split into chapter 2 + verse 3.
+  const regex = /^([A-Za-z0-9äöüÄÖÜß\.\-\s]+?)\s+(\d+)(?:[,:](\d+)[a-z]?(?:\s*(?:-|und|bis|[&_.'])\s*(\d+)[a-z]?)?)?$/i;
   const match = input.match(regex);
 
   if (!match) return null;
@@ -169,7 +171,10 @@ export function parseStelleLive(raw: string): ParseErgebnis {
   const kapitel   = kapStr  ? parseInt(kapStr)  : null;
   const startVers = vonStr  ? parseInt(vonStr)  : null;
   const endVers   = bisStr  ? parseInt(bisStr)  : null;
-  const komplett  = kapitel !== null;
+  // "Buch + Kapitel" soll bereits als komplette Stelle gelten.
+  // Optionaler Vers wird dann bei vorhandenem Trennzeichen/Zahl ergänzt.
+  // Wichtig: In der UI/DB soll kein Vers-Tail zwingend sein.
+  const komplett = kapitel !== null;
 
   let normalisiert: string | null = null;
   if (komplett) {

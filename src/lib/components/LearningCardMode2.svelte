@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Verse } from '$lib/db';
-  import { splitStelle } from '$lib/utils';
+  import { splitStelle, extractFirstChunk } from '$lib/utils';
   import RatingButtons from './RatingButtons.svelte';
   import VorlesenButton from './VorlesenButton.svelte';
   import { frageFontSize, frageGroesse } from '$lib/stores';
@@ -26,31 +26,14 @@
 
   // Tipp für Modus 2 (Text→Stelle): zeige nur das Buch als Hinweis
   let stelleParts = $derived(splitStelle(verse.stelle));
-  let vorlesenText = $derived(`${verse.stelle} – ${verse.text}`);
+  let firstChunk = $derived(extractFirstChunk(verse.text));
+  let vorlesenText = $derived(`${verse.stelle} – ${firstChunk}`);
 
   let fontSize = $state(1.8);
   frageFontSize.subscribe(v => fontSize = v);
 
   let frageSize = $state(1.5);
   frageGroesse.subscribe(v => frageSize = v);
-
-  let maxWordsMode2 = $state(30);
-  $effect(() => {
-    const stored = localStorage.getItem('rebible_max_words_mode2_v2');
-    if (stored) {
-      maxWordsMode2 = parseInt(stored, 10);
-    }
-  });
-
-  let displayedQuestionText = $derived(() => {
-    const words = verse.text.split(/\s+/);
-    if (words.length > maxWordsMode2) {
-      const firstPart = words.slice(0, maxWordsMode2).join(' ');
-      const lastPart = words.slice(-8).join(' ');
-      return `${firstPart} ... ${lastPart}`;
-    }
-    return verse.text;
-  });
 </script>
 
 <div class="h-full bg-black flex flex-col overflow-hidden relative">
@@ -86,7 +69,7 @@
   <div class="flex-1 overflow-y-auto p-4 flex flex-col">
     <div class="m-auto w-full max-w-md">
       <div class="text-center text-white leading-snug font-semibold mb-6" style="font-size: {fontSize}rem;">
-        {displayedQuestionText()}
+        {firstChunk}
       </div>
 
       {#if !showText}
@@ -128,7 +111,7 @@
           Stelle anzeigen
         </button>
       {:else}
-        <RatingButtons {onRate} {verse} dreierModus={true} />
+        <RatingButtons {onRate} {verse} dreierModus={true} modeKey="Vers" />
         <VorlesenButton text={vorlesenText} />
       {/if}
     </div>
