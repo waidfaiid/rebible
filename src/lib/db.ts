@@ -78,6 +78,17 @@ export class ReBibleDB extends Dexie {
         }
       });
     });
+
+    // Version 4: firstChunk für Verse nachberechnen, die über Anki-Import ohne firstChunk gespeichert wurden.
+    this.version(4).stores({
+      verse: '++id, stelle, text, tags, interval, easeFactor, nextReview, lastReview, reviewCount, nextReviewStelle, nextReviewVers, nextReviewBuch, nextReviewThema'
+    }).upgrade(tx => {
+      return tx.table('verse').toCollection().modify((verse: Verse) => {
+        if (!verse.firstChunk && verse.text) {
+          verse.firstChunk = extractFirstChunk(verse.text);
+        }
+      });
+    });
   }
 }
 
