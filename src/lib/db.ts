@@ -1,10 +1,15 @@
 import Dexie, { type Table } from 'dexie';
+import { extractFirstChunk } from '$lib/utils';
 
 export interface Verse {
   id?: number;
   stelle: string;
   text: string;
   tags: string[] | string;
+  // Erster sinnvoller Abschnitt des Verses (automatisch berechnet)
+  firstChunk?: string;
+  // Manuell korrigierter erster Abschnitt (hat Vorrang vor firstChunk)
+  firstChunkManual?: string;
   // Legacy fields (kept for backward compatibility when adding new verses)
   interval: number;
   easeFactor: number;
@@ -24,13 +29,13 @@ export interface Verse {
   nextReviewVers?: string;
   lastReviewVers?: string;
   reviewCountVers?: number;
-  // Modus 3: Buch-Modus → Bibelbuch (Bibelbuch Bereich anzeigen, Kapitelnummer, Versnummer und ersten Chunk der Versteste wiederholen)
+  // Modus 3: Buch-Modus → Bibelbuch (Bibelbuch Bereich anzeigen, Kapitelnummer, Versnummer und ersten Chunk der Verstexte wiederholen)
   intervalBuch?: number;
   easeFactorBuch?: number;
   nextReviewBuch?: string;
   lastReviewBuch?: string;
   reviewCountBuch?: number;
-  // Modus 4: Thema-Modus → Thema (Thema anzeigen, Bibelstelleund ersten Chunk der Versteste wiederholen)
+  // Modus 4: Thema-Modus → Thema (Thema anzeigen, Bibelstelle und ersten Chunk der Verstexte wiederholen)
   intervalThema?: number;
   easeFactorThema?: number;
   nextReviewThema?: string;
@@ -59,6 +64,17 @@ export class ReBibleDB extends Dexie {
           verse.easeFactorStelle = verse.easeFactor;
           verse.lastReviewStelle = verse.lastReview;
           verse.reviewCountStelle = verse.reviewCount;
+        }
+      });
+    });
+
+    // Version 3: firstChunk für alle bestehenden Verse berechnen.
+    this.version(3).stores({
+      verse: '++id, stelle, text, tags, interval, easeFactor, nextReview, lastReview, reviewCount, nextReviewStelle, nextReviewVers, nextReviewBuch, nextReviewThema'
+    }).upgrade(tx => {
+      return tx.table('verse').toCollection().modify((verse: Verse) => {
+        if (!verse.firstChunk && verse.text) {
+          verse.firstChunk = extractFirstChunk(verse.text);
         }
       });
     });

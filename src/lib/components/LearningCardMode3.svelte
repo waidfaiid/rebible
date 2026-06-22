@@ -93,12 +93,16 @@
         </div>
 
       {:else}
-        <!-- Antwort: alle Verse mit vollem Text -->
+        <!-- Antwort: alle Verse mit erstem Chunk -->
         <div class="space-y-2">
           {#each verses as v}
+            {@const chunk = v.firstChunkManual ?? v.firstChunk ?? v.text}
             <div class="bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 leading-snug" style="font-size: {fontSize}rem;">
               <span class="font-bold text-white">{getVerseLabel(v.stelle)}</span>
-              <span class="text-zinc-200 ml-2">{v.text}</span>
+              <span class="text-zinc-200 ml-2">{chunk}</span>
+              {#if chunk !== v.text}
+                <span class="text-zinc-600"> …</span>
+              {/if}
             </div>
           {/each}
         </div>
