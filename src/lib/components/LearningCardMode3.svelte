@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Verse } from '$lib/db';
-  import { splitStelle } from '$lib/utils';
+  import { splitStelle, extractFirstChunk } from '$lib/utils';
   import { frageFontSize, frageGroesse } from '$lib/stores';
   import RatingButtons from './RatingButtons.svelte';
   import VorlesenButton from './VorlesenButton.svelte';
@@ -96,7 +96,7 @@
         <!-- Antwort: alle Verse mit erstem Chunk -->
         <div class="space-y-2">
           {#each verses as v}
-            {@const chunk = v.firstChunkManual ?? v.firstChunk ?? v.text}
+            {@const chunk = v.firstChunkManual ?? v.firstChunk ?? extractFirstChunk(v.text)}
             <div class="bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 leading-snug" style="font-size: {fontSize}rem;">
               <span class="font-bold text-white">{getVerseLabel(v.stelle)}</span>
               <span class="text-zinc-200 ml-2">{chunk}</span>

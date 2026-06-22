@@ -114,11 +114,39 @@ const FINITE_VERBS = new Set<string>([
 	'stärke','weise','leite','behüte','vergib','schenke',
 	'träumt','träumen','träumte','träumten',
 	'ernährt','ernähren','ernährte','ernährten',
+	// Häufige Imperative und Verben in Bibelsprache
+	'trachtet','trachte','trachten',
+	'sucht','suche','suchen','suchte','suchten',
+	'freut','freue','freuen','freute','freuten',
+	'fürchtet','fürchte','fürchten','fürchtete','fürchteten','fürchtest',
+	'betet','bete','beten','betete','beteten',
+	'bittet','bitte','bitten','bat','baten','bittest',
+	'dankt','danke','danken','dankte','dankten','dankst',
+	'lobt','lobe','loben','lobte','lobten','lobst',
+	'preist','preise','preisen','pries','priesen',
+	'hofft','hoffe','hoffen','hoffte','hofften','hoffst',
+	'vertraut','vertraue','vertrauen','vertraute','vertrauten',
+	'wartet','warte','warten','wartete','warteten','wartest',
+	'dient','diene','dienen','diente','dienten','dienst',
+	'sorgt','sorge','sorgen','sorgte','sorgten','sorgst',
+	'glänzt','glänze','glänzen',
+	'bezeugt','bezeuge','bezeugen','bezeugte','bezeugten',
+	'trägt','tragen','trug','trugen','trägst',
+	'führt','führen','führte','führten','führst',
+	'tröst','tröstet','tröstest','tröstete','trösteten',
+	'schützt','schütze','schützen','schützte','schützten','schützest',
+	'öffnet','öffne','öffnen','öffnete','öffneten',
+	'nähert','nähere','nähern','näherte','näherten',
+	'richtet','richte','richten','richtete','richteten',
+	'wächst','wachse','wachsen','wuchs','wuchsen',
+	'fällt','falle','fallen','fiel','fielen',
+	'lässt','lass','lasse','lassen','ließ','ließen',
 ]);
 
 /** Prüft, ob ein Textabschnitt ein finites Verb enthält. */
 function hasFiniteVerb(text: string): boolean {
-	const words = text.toLowerCase().split(/\W+/).filter(w => w.length > 1);
+	// match() statt split() damit deutsche Umlaute (ä, ö, ü, ß) nicht als Trennzeichen wirken
+	const words = text.toLowerCase().match(/[a-zA-ZäöüÄÖÜß]+/g) ?? [];
 	return words.some(w => FINITE_VERBS.has(w));
 }
 
