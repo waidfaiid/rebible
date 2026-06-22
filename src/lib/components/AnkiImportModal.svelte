@@ -2,6 +2,7 @@
 	import { db } from '$lib/db';
 	import { verses } from '$lib/stores';
 	import { parseAnkiFile } from '$lib/ankiImport';
+	import { extractFirstChunk } from '$lib/utils';
 	import BibelstellenEingabe from './BibelstellenEingabe.svelte';
 	import type { Verse } from '$lib/db';
 
@@ -133,9 +134,11 @@
 	// Svelte 5 $state-Proxies können nicht direkt in IndexedDB gespeichert werden.
 	// Diese Funktion baut ein reines Plain-Objekt ohne Proxy-Wrapper.
 	function ohneProxy(card: Partial<Verse>): Omit<Verse, 'id'> {
+		const text = String(card.text ?? '');
 		return {
 			stelle:      String(card.stelle ?? ''),
-			text:        String(card.text ?? ''),
+			text,
+			firstChunk:  extractFirstChunk(text),
 			tags:        Array.isArray(card.tags) ? [...(card.tags as string[])] : String(card.tags ?? ''),
 			interval:    Number(card.interval ?? 0),
 			easeFactor:  Number(card.easeFactor ?? 2.5),

@@ -5,6 +5,7 @@
 	import { verses, showEditModal, selectedVerse, toastMessage } from '$lib/stores';
 	import { db } from '$lib/db';
 	import type { Verse } from '$lib/db';
+	import { extractFirstChunk } from '$lib/utils';
 
 	let currentVerses = $state<Verse[]>([]);
 	let showModal = $state(false);
@@ -113,11 +114,13 @@
 		statistikOffen = false;
 	}
 
-	async function addVerse(stelle: string, text: string, tags: string) {
+	async function addVerse(stelle: string, text: string, tags: string, firstChunkManual?: string) {
 		const heute = new Date();
 		heute.setHours(0, 0, 0, 0);
 		const newVerse: Verse = {
 			stelle, text,
+			firstChunk: extractFirstChunk(text),
+			...(firstChunkManual ? { firstChunkManual } : {}),
 			tags: tags ? tags.split(',').map(t => t.trim()).filter(t => t) : [],
 			interval: 1, easeFactor: 2.5,
 			nextReview: heute.toISOString(),
@@ -145,10 +148,16 @@
 
 	async function saveEdit(
 		id: number, stelle: string, text: string, tags: string,
-		sm2: { easeFactor: number; interval: number; reviewCount: number; nextReview: string; lastReview: string }
+		sm2: { easeFactor: number; interval: number; reviewCount: number; nextReview: string; lastReview: string },
+		firstChunkManual?: string
 	) {
 		const tagArray = tags ? tags.split(',').map(t => t.trim()).filter(t => t) : [];
-		const updates = { stelle, text, tags: tagArray, ...sm2 };
+		const firstChunk = extractFirstChunk(text);
+		const updates: Partial<Verse> = {
+			stelle, text, tags: tagArray, ...sm2,
+			firstChunk,
+			firstChunkManual: firstChunkManual ?? undefined
+		};
 		await db.verse.update(id, updates);
 		verses.update(v => v.map(verse => verse.id === id ? { ...verse, ...updates } : verse));
 		showEditModal.set(false);

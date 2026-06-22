@@ -16,7 +16,8 @@
       return;
     }
 
-    const utterance = new SpeechSynthesisUtterance(text);
+    const sprechText = text.replace(/,(\d)/g, ', $1');
+    const utterance = new SpeechSynthesisUtterance(sprechText);
     utterance.lang = 'de-DE';
     utterance.rate = rate;
     utterance.onend = () => { spricht = false; };

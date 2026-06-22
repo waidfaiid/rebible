@@ -1,13 +1,15 @@
 <script lang="ts">
   import type { Verse } from '$lib/db';
   import { stelleNormalisieren } from '$lib/bible';
+  import { extractFirstChunk } from '$lib/utils';
 
   let { show, verse, onSave, onCancel }: {
     show: boolean;
     verse: Verse | null;
     onSave: (
       id: number, stelle: string, text: string, tags: string,
-      sm2: { easeFactor: number; interval: number; reviewCount: number; nextReview: string; lastReview: string }
+      sm2: { easeFactor: number; interval: number; reviewCount: number; nextReview: string; lastReview: string },
+      firstChunkManual?: string
     ) => void;
     onCancel: () => void;
   } = $props();
@@ -24,6 +26,10 @@
   let nextReviewInput = $state('');
   let lastReviewInput = $state('');
 
+  // Chunk-Editor-Zustand
+  let manualChunk = $state<string | null>(null);
+  let loadedVerseId = $state<number | null>(null);
+
   $effect(() => {
     if (verse) {
       stelleInput = verse.stelle;
@@ -36,8 +42,60 @@
       reviewCountInput = verse.reviewCount ?? 0;
       nextReviewInput = verse.nextReview ? verse.nextReview.slice(0, 10) : '';
       lastReviewInput = verse.lastReview ? verse.lastReview.slice(0, 10) : '';
+      // Manuelle Chunk-Korrektur aus DB laden
+      manualChunk = verse.firstChunkManual ?? null;
+      loadedVerseId = verse.id ?? null;
     }
   });
+
+  // Auto-erkannter Chunk (neu berechnet bei jedem textInput-Wechsel)
+  let autoChunk = $derived(textInput.trim() ? extractFirstChunk(textInput) : '');
+
+  // Aktuell gültiger Chunk (manuell hat Vorrang)
+  let displayChunk = $derived(manualChunk ?? autoChunk);
+
+  // Wörter des Originaltextes für die Hervorhebung und die +/--Steuerung
+  let textWords = $derived(textInput.trim().split(/\s+/).filter((w: string) => w));
+
+  /**
+   * Findet, wie viele Wörter vom Anfang des Originaltextes dem aktuellen
+   * Chunk entsprechen. Sucht den Chunk als Teilfolge im Original.
+   */
+  let chunkWordCount = $derived.by(() => {
+    if (!displayChunk.trim()) return 0;
+    const chunkWords = displayChunk.trim().split(/\s+/).filter((w: string) => w);
+    const normText = textWords.map((w: string) => w.toLowerCase().replace(/[^a-zäöüß0-9]/g, ''));
+    const normChunk = chunkWords.map((w: string) => w.toLowerCase().replace(/[^a-zäöüß0-9]/g, ''));
+
+    // Suche nach dem Chunk als zusammenhängende Teilfolge im Text
+    for (let i = 0; i <= normText.length - normChunk.length; i++) {
+      let match = true;
+      for (let j = 0; j < normChunk.length; j++) {
+        if (normText[i + j] !== normChunk[j]) { match = false; break; }
+      }
+      if (match) return i + normChunk.length;
+    }
+    // Fallback: Anzahl Chunk-Wörter als Präfix-Länge
+    return Math.min(chunkWords.length, textWords.length);
+  });
+
+  let isManualOverride = $derived(manualChunk !== null);
+
+  function extendChunk() {
+    if (chunkWordCount < textWords.length) {
+      manualChunk = textWords.slice(0, chunkWordCount + 1).join(' ');
+    }
+  }
+
+  function shrinkChunk() {
+    if (chunkWordCount > 1) {
+      manualChunk = textWords.slice(0, chunkWordCount - 1).join(' ');
+    }
+  }
+
+  function resetChunk() {
+    manualChunk = null;
+  }
 
   function checkStelle() {
     if (!stelleInput.trim()) { feedback = ''; erkannteStelle = null; return; }
@@ -54,13 +112,17 @@
     if (!verse) return;
     if (!stelleInput.trim() || !textInput.trim()) { alert('Stelle und Text sind Pflichtfelder'); return; }
     const stelle = erkannteStelle || stelleNormalisieren(stelleInput) || stelleInput;
-    onSave(verse.id!, stelle, textInput.trim(), tagsInput.trim(), {
-      easeFactor: Math.round(efInput * 100) / 100,
-      interval: intervalInput,
-      reviewCount: reviewCountInput,
-      nextReview: nextReviewInput ? new Date(nextReviewInput + 'T12:00:00').toISOString() : (verse.nextReview || new Date().toISOString()),
-      lastReview: lastReviewInput ? new Date(lastReviewInput + 'T12:00:00').toISOString() : (verse.lastReview || '')
-    });
+    onSave(
+      verse.id!, stelle, textInput.trim(), tagsInput.trim(),
+      {
+        easeFactor: Math.round(efInput * 100) / 100,
+        interval: intervalInput,
+        reviewCount: reviewCountInput,
+        nextReview: nextReviewInput ? new Date(nextReviewInput + 'T12:00:00').toISOString() : (verse.nextReview || new Date().toISOString()),
+        lastReview: lastReviewInput ? new Date(lastReviewInput + 'T12:00:00').toISOString() : (verse.lastReview || '')
+      },
+      manualChunk ?? undefined
+    );
   }
 </script>
 
@@ -123,6 +185,69 @@
           class="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-2xl text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-500 transition-all font-medium resize-none leading-relaxed"
         ></textarea>
       </div>
+
+      <!-- Erster Chunk (Buch-Modus) -->
+      {#if textInput.trim().length > 0}
+        <div>
+          <div class="flex items-center gap-2 mb-3">
+            <div class="h-px flex-1 bg-zinc-800"></div>
+            <span class="text-[10px] font-bold text-zinc-600 uppercase tracking-wider">Erster Chunk · Buch-Modus</span>
+            <div class="h-px flex-1 bg-zinc-800"></div>
+          </div>
+
+          <!-- Vorschau: Chunk hervorgehoben, Rest gedimmt -->
+          <div class="bg-zinc-800 border {isManualOverride ? 'border-amber-700/50' : 'border-zinc-700'} rounded-2xl px-4 py-3 text-sm leading-relaxed mb-3">
+            {#if chunkWordCount > 0}
+              <span class="text-amber-300 font-medium">{textWords.slice(0, chunkWordCount).join(' ')}</span><!--
+              -->{#if chunkWordCount < textWords.length}<span class="text-zinc-600"> {textWords.slice(chunkWordCount).join(' ')}</span>{/if}
+            {:else}
+              <span class="text-zinc-500 italic">Text zu kurz für Chunk-Erkennung</span>
+            {/if}
+          </div>
+
+          <!-- Steuerleiste -->
+          <div class="flex items-center gap-2">
+            <button
+              onclick={shrinkChunk}
+              disabled={chunkWordCount <= 1}
+              class="flex items-center gap-1 px-3 py-2 bg-zinc-800 border border-zinc-700 text-zinc-300 rounded-xl hover:bg-zinc-700 active:scale-95 transition-all disabled:opacity-30 disabled:cursor-not-allowed text-sm font-medium"
+            >
+              <span class="material-icons text-base">remove</span>
+              Wort
+            </button>
+
+            <div class="flex-1 text-center">
+              {#if isManualOverride}
+                <span class="text-[10px] font-bold text-amber-500 uppercase tracking-wider">Manuell</span>
+              {:else}
+                <span class="text-[10px] font-bold text-zinc-600 uppercase tracking-wider">Automatisch</span>
+              {/if}
+            </div>
+
+            <button
+              onclick={resetChunk}
+              disabled={!isManualOverride}
+              class="px-3 py-2 bg-zinc-800 border border-zinc-700 text-zinc-400 rounded-xl hover:bg-zinc-700 active:scale-95 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+              title="Zurück zur automatischen Erkennung"
+            >
+              <span class="material-icons text-base">restart_alt</span>
+            </button>
+
+            <button
+              onclick={extendChunk}
+              disabled={chunkWordCount >= textWords.length}
+              class="flex items-center gap-1 px-3 py-2 bg-zinc-800 border border-zinc-700 text-zinc-300 rounded-xl hover:bg-zinc-700 active:scale-95 transition-all disabled:opacity-30 disabled:cursor-not-allowed text-sm font-medium"
+            >
+              Wort
+              <span class="material-icons text-base">add</span>
+            </button>
+          </div>
+
+          <p class="text-[10px] text-zinc-600 mt-2 ml-1 leading-snug">
+            Der amber-farbige Teil wird in Modus 3 (Buch) als Antwort angezeigt.
+          </p>
+        </div>
+      {/if}
 
       <!-- Themen -->
       <div>
