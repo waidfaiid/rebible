@@ -43,6 +43,17 @@
     return isMultiBook ? stelle : splitStelle(stelle).chapvers;
   }
 
+  // Schwächster Vers der Gruppe (kleinster intervalBuch-Wert) – Basis für die
+  // Tage-Schätzung auf den Bewertungs-Buttons, analog zur echten SM-2-Berechnung.
+  let weakestVerse = $derived.by(() => {
+    if (verses.length === 0) return null;
+    return verses.reduce((prev, curr) => {
+      const prevIvl = (prev as Record<string, any>).intervalBuch ?? 0;
+      const currIvl = (curr as Record<string, any>).intervalBuch ?? 0;
+      return currIvl < prevIvl ? curr : prev;
+    }, verses[0]);
+  });
+
   let vorlesenSegmente = $derived(
     verses.map(v => ({
       stelle: v.stelle,
@@ -81,15 +92,15 @@
 
   <!-- Scrollable Content -->
   <div class="flex-1 min-h-0 overflow-y-auto p-4 flex flex-col">
-    <div class="max-w-md mx-auto w-full flex flex-col gap-4">
+    <div class="max-w-md mx-auto w-full flex flex-col {showText ? 'gap-2' : 'gap-4 my-auto'}">
 
       <!-- Frage: Buchbereich kompakt in einer Zeile, bleibt auch in der Antwort oben stehen -->
-      <div class="text-center py-2">
+      <div class="text-center {showText ? 'py-1' : 'py-2'}">
         <span class="font-bold text-white" style="font-size: {frageSize}rem;">{displayBook}{displaySub ? ' ' + displaySub : ''}</span>
       </div>
 
       {#if showText}
-        <div class="w-full h-px bg-zinc-800 mb-2"></div>
+        <div class="w-full h-px bg-zinc-800"></div>
         <!-- Antwort: alle Verse mit erstem Chunk -->
         <div class="space-y-2">
           {#each verses as v}
@@ -124,7 +135,7 @@
         Aufdecken
       </button>
     {:else}
-      <RatingButtons onRate={rateAll} dreierModus={true} />
+      <RatingButtons onRate={rateAll} dreierModus={true} verse={weakestVerse} modeKey="Buch" />
       <VorlesenButton segmente={vorlesenSegmente} />
     {/if}
   </div>

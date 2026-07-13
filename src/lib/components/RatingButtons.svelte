@@ -64,14 +64,13 @@
   </div>
 
 {:else}
-  <!-- Standard: 4 Buttons (2×2) -->
+  <!-- Standard: 4 Buttons (2×2), schlank ohne Unterbezeichnung -->
   <div class="grid grid-cols-2 gap-2 w-full">
     <button
       onclick={() => onRate(0)}
       class="bg-red-600 text-white py-2 px-3 rounded-2xl shadow-sm active:scale-95 transition-all flex flex-col items-center justify-center gap-0.5"
     >
-      <div class="font-bold text-xl leading-tight">Vergessen</div>
-      <div class="text-sm font-medium opacity-80">Komplett weg</div>
+      <div class="font-bold text-lg leading-tight">Vergessen</div>
       {#if showDays && verse}
         <div class="text-sm font-semibold opacity-90">{daysLabel(0)}</div>
       {/if}
@@ -80,8 +79,7 @@
       onclick={() => onRate(1)}
       class="bg-orange-500 text-white py-2 px-3 rounded-2xl shadow-sm active:scale-95 transition-all flex flex-col items-center justify-center gap-0.5"
     >
-      <div class="font-bold text-xl leading-tight">Lückenhaft</div>
-      <div class="text-sm font-medium opacity-80">Nur Brocken</div>
+      <div class="font-bold text-lg leading-tight">Lückenhaft</div>
       {#if showDays && verse}
         <div class="text-sm font-semibold opacity-90">{daysLabel(1)}</div>
       {/if}
@@ -90,8 +88,7 @@
       onclick={() => onRate(3)}
       class="bg-blue-600 text-white py-2 px-3 rounded-2xl shadow-sm active:scale-95 transition-all flex flex-col items-center justify-center gap-0.5"
     >
-      <div class="font-bold text-xl leading-tight">Inhaltlich gut</div>
-      <div class="text-sm font-medium opacity-80">Kleine Fehler</div>
+      <div class="font-bold text-lg leading-tight">Inhaltlich gut</div>
       {#if showDays && verse}
         <div class="text-sm font-semibold opacity-90">{daysLabel(3)}</div>
       {/if}
@@ -100,8 +97,7 @@
       onclick={() => onRate(4)}
       class="bg-green-600 text-white py-2 px-3 rounded-2xl shadow-sm active:scale-95 transition-all flex flex-col items-center justify-center gap-0.5"
     >
-      <div class="font-bold text-xl leading-tight">Wortgetreu</div>
-      <div class="text-sm font-medium opacity-80">Fehlerfrei</div>
+      <div class="font-bold text-lg leading-tight">Wortgetreu</div>
       {#if showDays && verse}
         <div class="text-sm font-semibold opacity-90">{daysLabel(4)}</div>
       {/if}

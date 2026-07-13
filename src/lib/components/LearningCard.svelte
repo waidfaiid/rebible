@@ -53,9 +53,9 @@
 
   <!-- Scrollable Content -->
   <div class="flex-1 min-h-0 overflow-y-auto p-4 flex flex-col">
-    <div class="max-w-md mx-auto w-full flex flex-col gap-4">
+    <div class="max-w-md mx-auto w-full flex flex-col {showText ? 'gap-2' : 'gap-4 my-auto'}">
       <!-- Frage: Bibelstelle kompakt in einer Zeile, bleibt auch in der Antwort oben stehen -->
-      <div class="text-center py-2">
+      <div class="text-center {showText ? 'py-1' : 'py-2'}">
         <span class="font-bold text-white" style="font-size: {frageSize}rem;">{stelleParts.book} {stelleParts.chapvers}</span>
       </div>
 
