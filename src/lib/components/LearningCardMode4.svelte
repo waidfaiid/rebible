@@ -45,6 +45,17 @@
     }
     onShowNext();
   }
+
+  // Schwächster Vers der Gruppe (kleinster intervalThema-Wert) – Basis für die
+  // Tage-Schätzung auf den Bewertungs-Buttons, analog zur echten SM-2-Berechnung.
+  let weakestVerse = $derived.by(() => {
+    if (verses.length === 0) return null;
+    return verses.reduce((prev, curr) => {
+      const prevIvl = (prev as Record<string, any>).intervalThema ?? 0;
+      const currIvl = (curr as Record<string, any>).intervalThema ?? 0;
+      return currIvl < prevIvl ? curr : prev;
+    }, verses[0]);
+  });
 </script>
 
 <div class="flex-1 min-h-0 bg-black flex flex-col overflow-hidden">
@@ -70,19 +81,16 @@
 
   <!-- Scrollable Content -->
   <div class="flex-1 min-h-0 overflow-y-auto p-4 flex flex-col">
-    <div class="max-w-md mx-auto w-full flex flex-col gap-4">
+    <div class="max-w-md mx-auto w-full flex flex-col {showText ? 'gap-2' : 'gap-4 my-auto'}">
 
-      {#if !showText}
-        <!-- Frage: nur Thema anzeigen -->
-        <div class="text-center py-8">
-          <div class="flex items-center justify-center gap-2 mb-2">
-            <span class="material-icons text-zinc-500 text-base">category</span>
-            <span class="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Thema</span>
-          </div>
-          <div class="font-bold text-white leading-tight" style="font-size: {frageSize}rem;">{tag}</div>
-        </div>
+      <!-- Frage: Thema kompakt in einer Zeile, bleibt auch in der Antwort oben stehen -->
+      <div class="text-center {showText ? 'py-1' : 'py-2'} flex items-baseline justify-center gap-2">
+        <span class="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Thema</span>
+        <span class="font-bold text-white" style="font-size: {frageSize}rem;">{tag}</span>
+      </div>
 
-      {:else}
+      {#if showText}
+        <div class="w-full h-px bg-zinc-800"></div>
         <!-- Antwort: alle Verse mit erstem Chunk -->
         <div class="space-y-2">
           {#each verses as v}
@@ -117,7 +125,7 @@
         Aufdecken
       </button>
     {:else}
-      <RatingButtons onRate={rateAll} dreierModus={true} />
+      <RatingButtons onRate={rateAll} dreierModus={true} verse={weakestVerse} modeKey="Thema" />
       <VorlesenButton segmente={vorlesenSegmente} />
     {/if}
   </div>
