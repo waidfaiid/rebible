@@ -71,7 +71,7 @@
 
 <div class="flex-1 min-h-0 bg-black flex flex-col overflow-hidden">
   <!-- Top Bar (Progress) -->
-  <div class="bg-black/90 px-3 py-2 shrink-0 flex items-center gap-3 pt-[env(safe-area-inset-top)]">
+  <div class="bg-black/90 px-3 py-2 shrink-0 flex items-center gap-3">
     <button
       onclick={onGoBack}
       class="text-zinc-400 hover:text-white p-1 rounded-full transition-colors duration-200 flex items-center justify-center active:scale-95"
@@ -124,7 +124,7 @@
 </div>
 
 <!-- Buttons: fixed am unteren Bildschirmrand, immer sichtbar -->
-<div class="fixed bottom-0 left-0 right-0 z-40 bg-black border-t border-zinc-900 p-4 pb-[calc(env(safe-area-inset-bottom)+5rem)]">
+<div class="fixed bottom-0 left-0 right-0 z-40 bg-black border-t border-zinc-900 p-4 pb-[calc(env(safe-area-inset-bottom)+56px)]">
   <div class="max-w-lg mx-auto w-full space-y-3">
     {#if !showText}
       <button
