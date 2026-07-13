@@ -72,17 +72,14 @@
   <div class="flex-1 min-h-0 overflow-y-auto p-4 flex flex-col">
     <div class="max-w-md mx-auto w-full flex flex-col gap-4">
 
-      {#if !showText}
-        <!-- Frage: nur Thema anzeigen -->
-        <div class="text-center py-8">
-          <div class="flex items-center justify-center gap-2 mb-2">
-            <span class="material-icons text-zinc-500 text-base">category</span>
-            <span class="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Thema</span>
-          </div>
-          <div class="font-bold text-white leading-tight" style="font-size: {frageSize}rem;">{tag}</div>
-        </div>
+      <!-- Frage: Thema, bleibt auch in der Antwort oben stehen -->
+      <div class="text-center py-6">
+        <div class="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mb-2">Thema</div>
+        <div class="font-bold text-white leading-tight" style="font-size: {frageSize}rem;">{tag}</div>
+      </div>
 
-      {:else}
+      {#if showText}
+        <div class="w-full h-px bg-zinc-800 mb-2"></div>
         <!-- Antwort: alle Verse mit erstem Chunk -->
         <div class="space-y-2">
           {#each verses as v}

@@ -62,12 +62,13 @@
   <!-- Scrollable Answer Area -->
   <div class="flex-1 overflow-y-auto p-4 flex flex-col">
     <div class="m-auto w-full max-w-md flex flex-col items-center gap-6">
+      <!-- Frage: Bibelstelle, bleibt auch in der Antwort oben stehen -->
+      <div class="text-center w-full">
+        <div class="font-bold text-white leading-tight" style="font-size: {frageSize}rem;">{stelleParts.book}</div>
+        <div class="font-semibold text-zinc-400 mt-1" style="font-size: {frageSize}rem;">{stelleParts.chapvers}</div>
+      </div>
+
       {#if !showText}
-        <!-- Frage: Bibelstelle groß anzeigen -->
-        <div class="text-center w-full">
-          <div class="font-bold text-white leading-tight" style="font-size: {frageSize}rem;">{stelleParts.book}</div>
-          <div class="font-semibold text-zinc-400 mt-1" style="font-size: {frageSize * 0.75}rem;">{stelleParts.chapvers}</div>
-        </div>
         {#if showTip}
           <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 text-center shadow-sm w-full">
             <div class="text-[10px] text-zinc-500 font-bold uppercase tracking-wider mb-2">Tipp</div>
@@ -75,6 +76,7 @@
           </div>
         {/if}
       {:else}
+        <div class="w-full h-px bg-zinc-800"></div>
         <!-- Antwort: Vers-Text -->
         <div class="text-center text-white leading-snug font-semibold" style="font-size: {fontSize}rem;">
           {verse.text}

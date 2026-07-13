@@ -177,10 +177,10 @@
 
 				<div class="h-px bg-zinc-800 w-full my-6"></div>
 
-				<!-- Schriftgröße der Vers-Texte (Antwort) -->
+				<!-- Schriftgröße Vers-Text -->
 				<div>
 					<div class="flex justify-between items-center mb-3">
-						<label class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider" for="font-size-slider">Schriftgröße Vers-Text (Antwort)</label>
+						<label class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider" for="font-size-slider">Schriftgröße Vers-Text</label>
 						<span class="bg-zinc-800 text-white px-3 py-1 rounded-full text-sm font-bold">{fontSizeValue.toFixed(1)}</span>
 					</div>
 					<input
@@ -197,15 +197,15 @@
 						<span>Klein</span>
 						<span>Groß</span>
 					</div>
-					<p class="text-xs text-zinc-500 mt-3 font-medium">Gilt für den aufgedeckten Vers-Text in allen Modi.</p>
+					<p class="text-xs text-zinc-500 mt-3 font-medium">Gilt einheitlich in allen Modi für den angezeigten Vers-Text (in Modus 2 als Frage, sonst als Antwort).</p>
 				</div>
 
 				<div class="h-px bg-zinc-800 w-full my-6"></div>
 
-				<!-- Schriftgröße der Fragen (Modus 1, 3, 4) -->
+				<!-- Schriftgröße Referenz/Kopfzeile -->
 				<div>
 					<div class="flex justify-between items-center mb-3">
-						<label class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider" for="frage-size-slider">Schriftgröße Fragen (Modus 1, 3, 4)</label>
+						<label class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider" for="frage-size-slider">Schriftgröße Referenz</label>
 						<span class="bg-zinc-800 text-white px-3 py-1 rounded-full text-sm font-bold">{frageGroesseValue.toFixed(1)}</span>
 					</div>
 					<input
@@ -222,7 +222,7 @@
 						<span>Klein</span>
 						<span>Groß</span>
 					</div>
-					<p class="text-xs text-zinc-500 mt-3 font-medium">Gilt für die Frage-Anzeige in Modus 1 (Bibelstelle), 3 (Buch) und 4 (Thema) – also was du erkennen oder auswendig wissen musst.</p>
+					<p class="text-xs text-zinc-500 mt-3 font-medium">Gilt einheitlich in allen Modi für die Bibelstelle/das Buch/das Thema (in Modus 2 als Antwort, sonst als Frage).</p>
 				</div>
 
 				<div class="h-px bg-zinc-800 w-full my-6"></div>

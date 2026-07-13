@@ -84,7 +84,7 @@
         <div class="w-full h-px bg-zinc-800 my-6"></div>
         <div class="text-center">
           <div class="font-bold text-white leading-tight" style="font-size: {frageSize}rem;">{stelleParts.book}</div>
-          <div class="font-semibold text-zinc-400 mt-1" style="font-size: {frageSize * 0.75}rem;">{stelleParts.chapvers}</div>
+          <div class="font-semibold text-zinc-400 mt-1" style="font-size: {frageSize}rem;">{stelleParts.chapvers}</div>
         </div>
       {/if}
     </div>

@@ -83,19 +83,16 @@
   <div class="flex-1 min-h-0 overflow-y-auto p-4 flex flex-col">
     <div class="max-w-md mx-auto w-full flex flex-col gap-4">
 
-      {#if !showText}
-        <!-- Frage: nur Buchbereich anzeigen -->
-        <div class="text-center py-8">
-          <div class="flex items-center justify-center gap-2 mb-1">
-            <span class="material-icons text-zinc-500 text-lg">auto_stories</span>
-          </div>
-          <div class="font-bold text-white leading-tight" style="font-size: {frageSize}rem;">{displayBook}</div>
-          {#if displaySub}
-            <div class="font-semibold text-zinc-400 mt-1" style="font-size: {frageSize * 0.65}rem;">{displaySub}</div>
-          {/if}
-        </div>
+      <!-- Frage: Buchbereich, bleibt auch in der Antwort oben stehen -->
+      <div class="text-center py-6">
+        <div class="font-bold text-white leading-tight" style="font-size: {frageSize}rem;">{displayBook}</div>
+        {#if displaySub}
+          <div class="font-semibold text-zinc-400 mt-1" style="font-size: {frageSize}rem;">{displaySub}</div>
+        {/if}
+      </div>
 
-      {:else}
+      {#if showText}
+        <div class="w-full h-px bg-zinc-800 mb-2"></div>
         <!-- Antwort: alle Verse mit erstem Chunk -->
         <div class="space-y-2">
           {#each verses as v}
