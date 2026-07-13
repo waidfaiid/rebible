@@ -30,7 +30,7 @@
   let vorlesenText = $derived(`${verse.stelle} – ${verse.text}`);
 </script>
 
-<div class="h-full bg-black flex flex-col overflow-hidden relative">
+<div class="flex-1 min-h-0 bg-black flex flex-col overflow-hidden relative">
   <!-- Top Bar (Progress) -->
   <div class="bg-black/90 px-3 py-2 shrink-0 flex items-center gap-3 pt-[env(safe-area-inset-top)]">
     <button
@@ -51,21 +51,12 @@
     <span class="text-[10px] font-bold text-zinc-500 tracking-wider w-8 text-right">{progress.current}/{progress.total}</span>
   </div>
 
-  <!-- Header (Context) -->
-  <div class="px-4 py-2 shrink-0 text-center border-b border-zinc-800">
-    <h2 class="text-sm font-bold text-zinc-400 flex items-center justify-center gap-2">
-      <span class="material-icons text-zinc-500 text-base">format_quote</span>
-      Vers-Modus
-    </h2>
-  </div>
-
-  <!-- Scrollable Answer Area -->
-  <div class="flex-1 overflow-y-auto p-4 flex flex-col">
-    <div class="m-auto w-full max-w-md flex flex-col items-center gap-6">
-      <!-- Frage: Bibelstelle, bleibt auch in der Antwort oben stehen -->
-      <div class="text-center w-full">
-        <div class="font-bold text-white leading-tight" style="font-size: {frageSize}rem;">{stelleParts.book}</div>
-        <div class="font-semibold text-zinc-400 mt-1" style="font-size: {frageSize}rem;">{stelleParts.chapvers}</div>
+  <!-- Scrollable Content -->
+  <div class="flex-1 min-h-0 overflow-y-auto p-4 flex flex-col">
+    <div class="max-w-md mx-auto w-full flex flex-col gap-4">
+      <!-- Frage: Bibelstelle kompakt in einer Zeile, bleibt auch in der Antwort oben stehen -->
+      <div class="text-center py-2">
+        <span class="font-bold text-white" style="font-size: {frageSize}rem;">{stelleParts.book} {stelleParts.chapvers}</span>
       </div>
 
       {#if !showText}
@@ -85,30 +76,33 @@
     </div>
   </div>
 
-  <!-- Fixed Bottom Buttons -->
-  <div class="shrink-0 p-4 bg-black border-t border-zinc-900 space-y-3 pb-[calc(env(safe-area-inset-bottom)+5rem)]">
-    <div class="max-w-md mx-auto w-full space-y-3">
-      {#if !showText}
-        {#if !showTip}
-          <button
-            onclick={onShowTip}
-            class="w-full bg-zinc-900 text-white border border-zinc-800 px-6 py-4 rounded-2xl hover:bg-zinc-800 active:scale-95 font-bold text-lg transition-all duration-200 flex items-center justify-center gap-2 shadow-sm"
-          >
-            <span class="material-icons text-zinc-400">lightbulb</span>
-            Tipp anzeigen
-          </button>
-        {/if}
+  <!-- Platzhalter damit Content nicht hinter den fixen Buttons verschwindet -->
+  <div class="shrink-0 {showText ? 'h-72' : showTip ? 'h-40' : 'h-24'} pb-[env(safe-area-inset-bottom)]"></div>
+</div>
+
+<!-- Buttons: fixed am unteren Bildschirmrand, immer sichtbar -->
+<div class="fixed bottom-0 left-0 right-0 z-40 bg-black border-t border-zinc-900 p-4 pb-[calc(env(safe-area-inset-bottom)+5rem)]">
+  <div class="max-w-md mx-auto w-full space-y-3">
+    {#if !showText}
+      {#if !showTip}
         <button
-          onclick={onReveal}
-          class="w-full bg-red-600 text-white px-6 py-5 rounded-2xl hover:bg-red-700 active:scale-95 font-bold text-xl transition-all duration-200 flex items-center justify-center gap-2 shadow-sm shadow-red-900/20"
+          onclick={onShowTip}
+          class="w-full bg-zinc-900 text-white border border-zinc-800 px-6 py-4 rounded-2xl hover:bg-zinc-800 active:scale-95 font-bold text-lg transition-all duration-200 flex items-center justify-center gap-2 shadow-sm"
         >
-          <span class="material-icons">visibility</span>
-          Aufdecken
+          <span class="material-icons text-zinc-400">lightbulb</span>
+          Tipp anzeigen
         </button>
-      {:else}
-        <RatingButtons {onRate} {verse} modeKey="Stelle" />
-        <VorlesenButton text={vorlesenText} />
       {/if}
-    </div>
+      <button
+        onclick={onReveal}
+        class="w-full bg-red-600 text-white px-6 py-5 rounded-2xl hover:bg-red-700 active:scale-95 font-bold text-xl transition-all duration-200 flex items-center justify-center gap-2 shadow-sm shadow-red-900/20"
+      >
+        <span class="material-icons">visibility</span>
+        Aufdecken
+      </button>
+    {:else}
+      <RatingButtons {onRate} {verse} modeKey="Stelle" />
+      <VorlesenButton text={vorlesenText} />
+    {/if}
   </div>
 </div>

@@ -83,12 +83,9 @@
   <div class="flex-1 min-h-0 overflow-y-auto p-4 flex flex-col">
     <div class="max-w-md mx-auto w-full flex flex-col gap-4">
 
-      <!-- Frage: Buchbereich, bleibt auch in der Antwort oben stehen -->
-      <div class="text-center py-6">
-        <div class="font-bold text-white leading-tight" style="font-size: {frageSize}rem;">{displayBook}</div>
-        {#if displaySub}
-          <div class="font-semibold text-zinc-400 mt-1" style="font-size: {frageSize}rem;">{displaySub}</div>
-        {/if}
+      <!-- Frage: Buchbereich kompakt in einer Zeile, bleibt auch in der Antwort oben stehen -->
+      <div class="text-center py-2">
+        <span class="font-bold text-white" style="font-size: {frageSize}rem;">{displayBook}{displaySub ? ' ' + displaySub : ''}</span>
       </div>
 
       {#if showText}

@@ -72,10 +72,10 @@
   <div class="flex-1 min-h-0 overflow-y-auto p-4 flex flex-col">
     <div class="max-w-md mx-auto w-full flex flex-col gap-4">
 
-      <!-- Frage: Thema, bleibt auch in der Antwort oben stehen -->
-      <div class="text-center py-6">
-        <div class="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mb-2">Thema</div>
-        <div class="font-bold text-white leading-tight" style="font-size: {frageSize}rem;">{tag}</div>
+      <!-- Frage: Thema kompakt in einer Zeile, bleibt auch in der Antwort oben stehen -->
+      <div class="text-center py-2 flex items-baseline justify-center gap-2">
+        <span class="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Thema</span>
+        <span class="font-bold text-white" style="font-size: {frageSize}rem;">{tag}</span>
       </div>
 
       {#if showText}
