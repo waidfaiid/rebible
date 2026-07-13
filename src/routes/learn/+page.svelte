@@ -201,21 +201,46 @@
 				return aVers - bVers;
 			});
 
-			// In Gruppen von max. 5 aufteilen
-			const totalVerses = familyVerses.length;
+			// Erst nach Kapitel gruppieren (Verse sind bereits nach Buch/Kapitel/Vers sortiert),
+			// damit ein Kapitel möglichst nicht auf mehrere Karten aufgeteilt wird
+			const chapterGroups: Verse[][] = [];
+			let currentChapterKey: string | null = null;
+			familyVerses.forEach(v => {
+				const { book, chapvers } = splitStelle(v.stelle);
+				const chapter = chapvers.match(/^(\d+)/)?.[1] ?? '';
+				const key = `${book}|${chapter}`;
+				if (key !== currentChapterKey) {
+					chapterGroups.push([]);
+					currentChapterKey = key;
+				}
+				chapterGroups[chapterGroups.length - 1].push(v);
+			});
+
+			// Kapitelgruppen zu Karten von max. 5 Versen zusammenfassen, ohne ein Kapitel
+			// aufzuteilen (außer ein einzelnes Kapitel hat selbst mehr als 5 Verse)
+			const MAX_GROUP_SIZE = 5;
 			const chunks: Verse[][] = [];
-			if (totalVerses <= 5) {
-				chunks.push(familyVerses);
-			} else {
-				const numGroups = Math.ceil(totalVerses / 5);
-				const baseSize = Math.floor(totalVerses / numGroups);
-				let remainder = totalVerses % numGroups;
-				let idx = 0;
-				for (let i = 0; i < numGroups; i++) {
-					const groupSize = baseSize + (remainder > 0 ? 1 : 0);
-					remainder--;
-					chunks.push(familyVerses.slice(idx, idx + groupSize));
-					idx += groupSize;
+			let currentChunk: Verse[] = [];
+			chapterGroups.forEach(chapterVerses => {
+				if (currentChunk.length > 0 && currentChunk.length + chapterVerses.length > MAX_GROUP_SIZE) {
+					chunks.push(currentChunk);
+					currentChunk = [];
+				}
+				currentChunk.push(...chapterVerses);
+			});
+			if (currentChunk.length > 0) {
+				chunks.push(currentChunk);
+			}
+
+			// Einzelne Verse dürfen nicht als eigene Karte übrig bleiben – mit Nachbarkarte zusammenlegen
+			for (let i = chunks.length - 1; i >= 0; i--) {
+				if (chunks[i].length === 1 && chunks.length > 1) {
+					if (i > 0) {
+						chunks[i - 1].push(...chunks[i]);
+					} else {
+						chunks[i + 1].unshift(...chunks[i]);
+					}
+					chunks.splice(i, 1);
 				}
 			}
 
