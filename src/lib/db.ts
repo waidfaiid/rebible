@@ -1,5 +1,14 @@
 import Dexie, { type Table } from 'dexie';
-import { extractFirstChunk } from '$lib/utils';
+import { extractFirstChunk, splitStelle } from '$lib/utils';
+
+// Alte lateinische Buchnamen der 5 Bücher Mose → deutsche Zählnamen.
+const MOSE_BUCH_UMBENENNUNG: Record<string, string> = {
+  'Genesis': '1. Mose',
+  'Exodus': '2. Mose',
+  'Levitikus': '3. Mose',
+  'Numeri': '4. Mose',
+  'Deuteronomium': '5. Mose'
+};
 
 export interface Verse {
   id?: number;
@@ -97,6 +106,20 @@ export class ReBibleDB extends Dexie {
       return tx.table('verse').toCollection().modify((verse: Verse) => {
         if (verse.text && !verse.firstChunkManual) {
           verse.firstChunk = extractFirstChunk(verse.text);
+        }
+      });
+    });
+
+    // Version 6: lateinische Namen der 5 Bücher Mose (Genesis, Exodus, Levitikus,
+    // Numeri, Deuteronomium) auf die deutschen Zählnamen (1.–5. Mose) umstellen.
+    this.version(6).stores({
+      verse: '++id, stelle, text, tags, interval, easeFactor, nextReview, lastReview, reviewCount, nextReviewStelle, nextReviewVers, nextReviewBuch, nextReviewThema'
+    }).upgrade(tx => {
+      return tx.table('verse').toCollection().modify((verse: Verse) => {
+        const { book, chapvers } = splitStelle(verse.stelle);
+        const neuerName = MOSE_BUCH_UMBENENNUNG[book];
+        if (neuerName) {
+          verse.stelle = chapvers ? `${neuerName} ${chapvers}` : neuerName;
         }
       });
     });
