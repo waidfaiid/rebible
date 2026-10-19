@@ -1,9 +1,46 @@
 # Learning Logics
 
-## 1 sfsf
+## Lernphasen eines Verses (Modus 1: Stelle → Text)
 
-sdfsdf
+```
+Warteliste (neu) → Werkstatt (lernen) → Langzeit
+                       ↑                    │
+                       └─ komplett vergessen┘
+```
 
-## 2
+1. **Warteliste** – neu angelegte Verse sind noch nicht fällig.
+2. **Werkstatt** – höchstens 3 Verse gleichzeitig. Freie Plätze werden beim Öffnen der Werkstatt
+   automatisch mit den ältesten Versen der Warteliste gefüllt. Ein Vers wird in der Sitzung so lange
+   wiederholt, bis er wortgetreu sitzt. „Vergessen“ setzt die gesammelten Tage auf 0 zurück.
+   Ist er **an 2 verschiedenen Tagen wortgetreu** gekonnt, wechselt er in die Langzeit
+   (erste Wiederholung nach 3 Tagen).
+   **Kontext-Runde:** Jede Werkstatt-Sitzung beginnt mit den Kapitelbereichen (wie Modus 3), in denen
+   ein heutiger Werkstatt-Vers steht, z. B. „Römer 6–8“: Versnummern und erste Satzteile aufsagen,
+   aufdecken, weiter. Schon gelernte Nachbarverse sind dabei, Werkstatt-Verse sind markiert.
+   Die Kontext-Runde ist reines Üben und verändert den Plan von Modus 3 nicht. Danach folgen die
+   Werkstatt-Verse einzeln im Wortlaut.
+3. **Langzeit** – Wiederholung nach dem Anki-Prinzip (Startfaktor 2,5, mindestens 1,3):
 
-sdfdsf
+| Knopf | entspricht Anki | neuer Abstand | Faktor |
+|---|---|---|---|
+| Vergessen | Nochmal | zurück in die Werkstatt | −0,20 |
+| Lückenhaft | Schwer | Abstand × 1,2 | −0,15 |
+| Inhaltlich gut | Gut | Abstand × Faktor | ± 0 |
+| Wortgetreu | Leicht | Abstand × Faktor × 1,3 | +0,15 |
+
+Wer zu spät wiederholt und den Vers trotzdem kann, bekommt die Verspätung (anteilig) angerechnet.
+Ab 3 Tagen werden die Abstände um ±5 % gestreut, damit sich Verse nicht auf einzelne Tage ballen.
+
+Modus 2, 4 und „Tägliches Training“ zeigen nur Verse in der Langzeit-Phase.
+Modus 3 (Buch/Kontext) zeigt Werkstatt- und Langzeit-Verse (nicht die Warteliste), weil er beim Einprägen hilft.
+
+Code: `src/lib/werkstatt.ts`, `src/lib/kontextGruppen.ts`, `src/lib/spacedRepetition.ts` (`ankiLangzeit`).
+
+## Anki-Import
+
+- Karte 1 einer Notiz (Stelle → Text) → Modus 1, Karte 2 (umgekehrt) → Modus 2.
+- Übernommen werden Faktor, Abstand, Fälligkeitsdatum, Anzahl Wiederholungen und die letzte
+  Wiederholung (aus Ankis Wiederholungsprotokoll).
+- Anki-Zustand → Phase: neu/ausgesetzt → Warteliste, lernen/neu lernen → Werkstatt, wiederholen → Langzeit.
+- Bereits vorhandene Verse werden ergänzt, nicht überschrieben (manuelle Abschnitte, Modus 3/4 bleiben).
+- Neue (.anki21b, komprimiert) und alte Exportformate werden gelesen.

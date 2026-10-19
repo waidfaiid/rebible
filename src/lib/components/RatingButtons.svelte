@@ -1,13 +1,15 @@
 <script lang="ts">
   import type { Verse } from '$lib/db';
-  import { calculateSM2 } from '$lib/spacedRepetition';
+  import { calculateSM2, ankiLangzeit } from '$lib/spacedRepetition';
+  import { ERFOLGSTAGE_NOETIG, heuteTag } from '$lib/werkstatt';
   import { showDaysOnButtons } from '$lib/stores';
 
-  let { onRate, verse = null, dreierModus = false, modeKey = '' }: {
+  let { onRate, verse = null, dreierModus = false, modeKey = '', werkstatt = false }: {
     onRate: (grade: number) => void;
     verse?: Verse | null;
     dreierModus?: boolean;
     modeKey?: string;
+    werkstatt?: boolean;
   } = $props();
 
   let showDays = $state(true);
@@ -22,7 +24,22 @@
     return calculateSM2(ef, ivl, rc, grade).interval;
   }
 
+  // Werkstatt: statt Tagen den Lernfortschritt anzeigen
+  function werkstattLabel(grade: number): string {
+    if (!verse) return '';
+    if (grade < 4) return 'nochmal';
+    if (verse.lernErfolgTag === heuteTag()) return 'heute geschafft';
+    const tag = (verse.lernErfolge ?? 0) + 1;
+    return tag >= ERFOLGSTAGE_NOETIG ? 'gelernt ✓' : `Tag ${tag}/${ERFOLGSTAGE_NOETIG}`;
+  }
+
   function daysLabel(grade: number): string {
+    if (werkstatt) return werkstattLabel(grade);
+    if (modeKey === 'Stelle' && verse) {
+      if (grade === 0) return 'Werkstatt';
+      const d = ankiLangzeit(verse.easeFactorStelle, verse.intervalStelle, verse.nextReviewStelle, grade, false).interval;
+      return d === 1 ? '1 Tag' : `${d} Tage`;
+    }
     const d = getDays(grade);
     if (d === null) return '';
     return d === 1 ? '1 Tag' : `${d} Tage`;

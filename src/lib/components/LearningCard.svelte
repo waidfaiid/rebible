@@ -4,8 +4,9 @@
   import { tippWoerter, frageFontSize, frageGroesse } from '$lib/stores';
   import RatingButtons from './RatingButtons.svelte';
   import VorlesenButton from './VorlesenButton.svelte';
+  import { ERFOLGSTAGE_NOETIG } from '$lib/werkstatt';
 
-  let { verse, onRate, onShowTip, onReveal, showTip, showText, progress, onGoBack }: {
+  let { verse, onRate, onShowTip, onReveal, showTip, showText, progress, onGoBack, werkstatt = false }: {
     verse: Verse;
     onRate: (grade: number) => void;
     onShowTip: () => void;
@@ -14,6 +15,7 @@
     showText: boolean;
     progress: { current: number; total: number };
     onGoBack?: () => void;
+    werkstatt?: boolean;
   } = $props();
 
   let woerter = $state(5);
@@ -56,6 +58,12 @@
     <div class="max-w-md mx-auto w-full flex flex-col {showText ? 'gap-2' : 'gap-4 my-auto'}">
       <!-- Frage: Bibelstelle kompakt in einer Zeile, bleibt auch in der Antwort oben stehen -->
       <div class="text-center {showText ? 'py-1' : 'py-2'}">
+        {#if werkstatt}
+          <div class="flex items-center justify-center gap-1 text-[10px] font-bold uppercase tracking-wider text-amber-500 mb-1">
+            <span class="material-icons text-sm">construction</span>
+            Werkstatt · {verse.lernErfolge ?? 0}/{ERFOLGSTAGE_NOETIG} Tage wortgetreu
+          </div>
+        {/if}
         <span class="font-bold text-white" style="font-size: {frageSize}rem;">{stelleParts.book} {stelleParts.chapvers}</span>
       </div>
 
@@ -101,7 +109,7 @@
         Aufdecken
       </button>
     {:else}
-      <RatingButtons {onRate} {verse} modeKey="Stelle" />
+      <RatingButtons {onRate} {verse} modeKey="Stelle" {werkstatt} />
       <VorlesenButton text={vorlesenText} />
     {/if}
   </div>

@@ -5,7 +5,7 @@
   import RatingButtons from './RatingButtons.svelte';
   import VorlesenButton from './VorlesenButton.svelte';
 
-  let { verses, displayBook, displaySub, onRate, onShowNext, progress, onGoBack }: {
+  let { verses, displayBook, displaySub, onRate, onShowNext, progress, onGoBack, werkstattIds }: {
     verses: Verse[];
     displayBook: string;
     displaySub: string;
@@ -13,6 +13,8 @@
     onShowNext: () => void;
     progress: { current: number; total: number };
     onGoBack?: () => void;
+    // Gesetzt in der Kontext-Runde der Werkstatt: diese Verse werden markiert, es gibt keine Bewertung
+    werkstattIds?: Set<number>;
   } = $props();
 
   let showText = $state(false);
@@ -96,6 +98,12 @@
 
       <!-- Frage: Buchbereich kompakt in einer Zeile, bleibt auch in der Antwort oben stehen -->
       <div class="text-center {showText ? 'py-1' : 'py-2'}">
+        {#if werkstattIds}
+          <div class="flex items-center justify-center gap-1 text-[10px] font-bold uppercase tracking-wider text-amber-500 mb-1">
+            <span class="material-icons text-sm">construction</span>
+            Kontext · Was steht hier?
+          </div>
+        {/if}
         <span class="font-bold text-white" style="font-size: {frageSize}rem;">{displayBook}{displaySub ? ' ' + displaySub : ''}</span>
       </div>
 
@@ -105,7 +113,11 @@
         <div class="space-y-2">
           {#each verses as v}
             {@const chunk = v.firstChunkManual ?? v.firstChunk ?? extractFirstChunk(v.text)}
-            <div class="bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 leading-snug" style="font-size: {fontSize}rem;">
+            {@const istNeu = werkstattIds?.has(v.id!) ?? false}
+            <div class="bg-zinc-900 border rounded-xl px-4 py-3 leading-snug {istNeu ? 'border-amber-600/60' : 'border-zinc-800'}" style="font-size: {fontSize}rem;">
+              {#if istNeu}
+                <span class="material-icons text-amber-500 align-middle" style="font-size: 1em;">construction</span>
+              {/if}
               <span class="font-bold text-white">{getVerseLabel(v.stelle)}</span>
               <span class="text-zinc-200 ml-2">{chunk}</span>
               {#if chunk !== v.text}
@@ -134,6 +146,15 @@
         <span class="material-icons">visibility</span>
         Aufdecken
       </button>
+    {:else if werkstattIds}
+      <button
+        onclick={onShowNext}
+        class="w-full bg-amber-600 text-white px-6 py-5 rounded-2xl hover:bg-amber-700 active:scale-95 font-bold text-xl transition-all duration-200 flex items-center justify-center gap-2"
+      >
+        <span class="material-icons">arrow_forward</span>
+        Weiter
+      </button>
+      <VorlesenButton segmente={vorlesenSegmente} />
     {:else}
       <RatingButtons onRate={rateAll} dreierModus={true} verse={weakestVerse} modeKey="Buch" />
       <VorlesenButton segmente={vorlesenSegmente} />

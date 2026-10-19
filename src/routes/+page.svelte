@@ -1,15 +1,23 @@
 <script lang="ts">
 	import StatsGrid from '$lib/components/StatsGrid.svelte';
 	import { verses } from '$lib/stores';
+	import type { Verse } from '$lib/db';
 	import { BUECHER } from '$lib/bible';
 	import { derived } from 'svelte/store';
 	import { goto } from '$app/navigation';
+	import { getPhase, werkstattHeuteFaellig, letzteWiederholung, WERKSTATT_MAX } from '$lib/werkstatt';
+	import { db } from '$lib/db';
+	import { onMount } from 'svelte';
 
-	function berechneSerie(verses: { lastReview?: string }[]): number {
+	// Nach einer Lernrunde aktuelle Zahlen anzeigen
+	onMount(async () => verses.set(await db.verse.toArray()));
+
+	function berechneSerie(verses: Verse[]): number {
 		const tageSet = new Set<string>();
 		for (const v of verses) {
-			if (v.lastReview) {
-				const d = new Date(v.lastReview);
+			const letzte = letzteWiederholung(v);
+			if (letzte) {
+				const d = new Date(letzte);
 				d.setHours(0, 0, 0, 0);
 				tageSet.add(d.toISOString());
 			}
@@ -32,17 +40,26 @@
 	const stats = derived(verses, $verses => {
 		const heute = new Date(); heute.setHours(0, 0, 0, 0);
 		const tagesende = new Date(); tagesende.setHours(23, 59, 59, 999);
+		// Fällig = Langzeit-Verse in Modus 1 (Stelle → Text)
 		const faellig = $verses.filter(v => {
-			const next = v.nextReview ? new Date(v.nextReview) : new Date();
+			if (getPhase(v) !== 'langzeit') return false;
+			const next = v.nextReviewStelle ? new Date(v.nextReviewStelle) : new Date();
 			return next <= tagesende;
 		});
 		const gelerntHeute = $verses.filter(v => {
-			if (!v.lastReview) return false;
-			const lastDate = new Date(v.lastReview); lastDate.setHours(0, 0, 0, 0);
+			const letzte = letzteWiederholung(v);
+			if (!letzte) return false;
+			const lastDate = new Date(letzte); lastDate.setHours(0, 0, 0, 0);
 			return lastDate.getTime() === heute.getTime();
 		}).length;
 		return { gesamt: $verses.length, faellig: faellig.length, gelerntHeute, serie: berechneSerie($verses) };
 	});
+
+	const werkstatt = derived(verses, $verses => ({
+		inArbeit: $verses.filter(v => getPhase(v) === 'lernen').length,
+		heute: $verses.filter(werkstattHeuteFaellig).length,
+		warteliste: $verses.filter(v => getPhase(v) === 'neu').length
+	}));
 
 	// Vers-Anzahl pro Bibelbuch
 	const buchDaten = derived(verses, $verses => {
@@ -58,7 +75,7 @@
 		return { daten, maxCount };
 	});
 
-	function startLearning(mode: 'gemischt' | 'stelle' | 'vers' | 'buch' | 'thema') {
+	function startLearning(mode: 'gemischt' | 'stelle' | 'vers' | 'buch' | 'thema' | 'werkstatt') {
 		goto(`/learn?mode=${mode}`);
 	}
 
@@ -152,6 +169,34 @@
 				<line x1="0" y1={BAR_BASE} x2={CHART_W} y2={BAR_BASE} stroke="#3f3f46" stroke-width="0.5" />
 			</svg>
 		</div>
+	</div>
+
+	<!-- Werkstatt: neue Verse gebündelt lernen, bevor sie in die Langzeit-Wiederholung kommen -->
+	<div class="px-4 mb-3">
+		<button
+			onclick={() => startLearning('werkstatt')}
+			class="w-full bg-zinc-900 border border-amber-600/40 hover:border-amber-500 text-white py-4 px-5 rounded-2xl shadow-sm transition-all duration-200 flex items-center justify-between group active:scale-95"
+		>
+			<div class="flex items-center gap-3">
+				<div class="bg-amber-600/20 text-amber-500 p-2 rounded-xl">
+					<span class="material-icons">construction</span>
+				</div>
+				<div class="text-left">
+					<div class="text-lg font-semibold">Werkstatt</div>
+					<div class="text-zinc-400 text-xs">
+						{#if $werkstatt.heute > 0}
+							{$werkstatt.heute} {$werkstatt.heute === 1 ? 'Vers' : 'Verse'} heute üben
+						{:else if $werkstatt.inArbeit > 0}
+							Für heute geschafft
+						{:else}
+							Neue Verse gebündelt lernen
+						{/if}
+						· {$werkstatt.inArbeit}/{WERKSTATT_MAX} in Arbeit · {$werkstatt.warteliste} auf der Warteliste
+					</div>
+				</div>
+			</div>
+			<span class="material-icons text-white/50 group-hover:translate-x-1 transition-transform">arrow_forward_ios</span>
+		</button>
 	</div>
 
 	<!-- Hauptlern-Button -->
