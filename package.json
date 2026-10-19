@@ -30,6 +30,7 @@
   "dependencies": {
     "@types/sql.js": "^1.4.11",
     "dexie": "^4.4.2",
+    "fzstd": "^0.1.1",
     "jszip": "^3.10.1",
     "sql.js": "^1.14.1"
   }

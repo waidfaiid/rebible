@@ -131,21 +131,11 @@
 		}
 	}
 
-	// Svelte 5 $state-Proxies können nicht direkt in IndexedDB gespeichert werden.
-	// Diese Funktion baut ein reines Plain-Objekt ohne Proxy-Wrapper.
-	function ohneProxy(card: Partial<Verse>): Omit<Verse, 'id'> {
-		const text = String(card.text ?? '');
-		return {
-			stelle:      String(card.stelle ?? ''),
-			text,
-			firstChunk:  extractFirstChunk(text),
-			tags:        Array.isArray(card.tags) ? [...(card.tags as string[])] : String(card.tags ?? ''),
-			interval:    Number(card.interval ?? 0),
-			easeFactor:  Number(card.easeFactor ?? 2.5),
-			nextReview:  String(card.nextReview ?? new Date().toISOString()),
-			lastReview:  card.lastReview ? String(card.lastReview) : undefined,
-			reviewCount: Number(card.reviewCount ?? 0),
-		};
+	// Svelte 5 $state-Proxies können nicht direkt in IndexedDB gespeichert werden –
+	// daher ein reines Plain-Objekt erzeugen.
+	function ohneProxy(card: Omit<Verse, 'id'>): Omit<Verse, 'id'> {
+		const plain = $state.snapshot(card) as Omit<Verse, 'id'>;
+		return { ...plain, firstChunk: extractFirstChunk(plain.text ?? '') };
 	}
 
 	async function saveAll() {
@@ -160,13 +150,15 @@
 		const vorhandeneMap = new Map(alleVorhanden.map(v => [v.stelle, v.id!]));
 
 		const neueKarten: Omit<Verse, 'id'>[] = [];
-		const updateKarten: Verse[]            = [];
+		const updateKarten: { key: number; changes: Partial<Verse> }[] = [];
 
 		for (const card of resolvedCards) {
 			const plain = ohneProxy(card);
 			const existingId = vorhandeneMap.get(plain.stelle);
 			if (existingId !== undefined) {
-				updateKarten.push({ ...plain, id: existingId });
+				// Nur die Anki-Daten übernehmen – eigene Ergänzungen (z. B. manueller erster Abschnitt,
+				// Fortschritt in Modus 3/4) bleiben erhalten
+				updateKarten.push({ key: existingId, changes: plain });
 			} else {
 				neueKarten.push(plain);
 			}
@@ -175,7 +167,7 @@
 		// Alles in einer einzigen Dexie-Transaktion – minimaler IndexedDB-Overhead
 		await db.transaction('rw', db.verse, async () => {
 			if (neueKarten.length > 0)   await db.verse.bulkAdd(neueKarten as Verse[]);
-			if (updateKarten.length > 0) await db.verse.bulkPut(updateKarten);
+			if (updateKarten.length > 0) await db.verse.bulkUpdate(updateKarten);
 		});
 
 		const allVerses = await db.verse.toArray();

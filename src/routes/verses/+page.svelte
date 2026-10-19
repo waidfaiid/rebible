@@ -125,7 +125,8 @@
 			interval: 1, easeFactor: 2.5,
 			nextReview: heute.toISOString(),
 			lastReview: undefined,
-			reviewCount: 0
+			reviewCount: 0,
+			phase: 'neu'
 		};
 		const id = await db.verse.add(newVerse);
 		verses.update(v => [...v, { ...newVerse, id }]);

@@ -32,3 +32,64 @@ export function calculateSM2(
     nextReview: nextReview.toISOString()
   };
 }
+
+// ── Langzeit-Plan für Modus 1 (nach dem Vorbild von Anki) ──────────────────
+// Bewertungen: 0 = Vergessen (Anki „Nochmal“), 1 = Lückenhaft („Schwer“),
+// 3 = Inhaltlich gut („Gut“), 4 = Wortgetreu („Leicht“).
+
+export const START_FAKTOR = 2.5;
+const MIN_FAKTOR = 1.3;
+const MAX_ABSTAND = 36500;
+const TAG_MS = 24 * 60 * 60 * 1000;
+
+export function ankiLangzeit(
+  easeFactor: number | undefined,
+  interval: number | undefined,
+  nextReview: string | undefined,
+  grade: number,
+  mitStreuung = true
+): { easeFactor: number; interval: number; nextReview: string; zurueckInWerkstatt: boolean } {
+  let ef = easeFactor || START_FAKTOR;
+  const ivl = Math.max(1, interval || 1);
+  // Wie viele Tage zu spät wird wiederholt? (Anki rechnet das als Bonus an)
+  const verspaetung = nextReview
+    ? Math.max(0, Math.floor((Date.now() - new Date(nextReview).getTime()) / TAG_MS))
+    : 0;
+
+  let neu: number;
+  let zurueckInWerkstatt = false;
+
+  if (grade === 0) {
+    // Komplett vergessen: zurück in die Werkstatt
+    ef -= 0.2;
+    neu = 1;
+    zurueckInWerkstatt = true;
+  } else if (grade === 1) {
+    // Lückenhaft: etwas länger als bisher, kein Rückfall auf 1 Tag
+    ef -= 0.15;
+    neu = Math.max(ivl + 1, (ivl + verspaetung / 4) * 1.2);
+  } else if (grade === 3) {
+    // Inhaltlich gut: Abstand × Faktor
+    const schwer = Math.max(ivl + 1, (ivl + verspaetung / 4) * 1.2);
+    neu = Math.max(schwer + 1, (ivl + verspaetung / 2) * ef);
+  } else {
+    // Wortgetreu: Abstand × Faktor × 1,3 und Faktor steigt
+    const gut = Math.max(ivl + 2, (ivl + verspaetung / 2) * ef);
+    neu = Math.max(gut + 1, (ivl + verspaetung) * ef * 1.3);
+    ef += 0.15;
+  }
+
+  ef = Math.max(MIN_FAKTOR, ef);
+  neu = Math.min(MAX_ABSTAND, Math.round(neu));
+
+  // Kleine Zufallsstreuung, damit sich Verse nicht alle auf einen Tag ballen
+  if (mitStreuung && !zurueckInWerkstatt && neu >= 3) {
+    const streuung = Math.max(1, Math.round(neu * 0.05));
+    neu += Math.floor(Math.random() * (2 * streuung + 1)) - streuung;
+  }
+
+  const naechste = new Date();
+  naechste.setDate(naechste.getDate() + neu);
+
+  return { easeFactor: ef, interval: neu, nextReview: naechste.toISOString(), zurueckInWerkstatt };
+}

@@ -11,6 +11,7 @@
 	}
 	import { db } from '$lib/db';
 	import { calculateSM2 } from '$lib/spacedRepetition';
+	import { getPhase, werkstattAuffuellen, werkstattHeuteFaellig, werkstattBewerten, langzeitBewerten } from '$lib/werkstatt';
 	import { splitStelle } from '$lib/utils';
 	import { BUECHER } from '$lib/bible';
 	import { goto } from '$app/navigation';
@@ -23,7 +24,7 @@
 	let currentVerse = $state<Verse | null>(null);
 	let showTip = $state(false);
 	let showText = $state(false);
-	let mode = $state<'gemischt' | 'stelle' | 'vers' | 'buch' | 'thema'>('stelle');
+	let mode = $state<'gemischt' | 'stelle' | 'vers' | 'buch' | 'thema' | 'werkstatt'>('stelle');
 	let currentCardMode = $state<'stelle' | 'vers'>('stelle');
 
 	// Buch-Modus
@@ -83,20 +84,37 @@
 	onMount(async () => {
 		// Get mode from URL
 		const modeParam = $page.url.searchParams.get('mode') as any;
-		if (modeParam && ['gemischt', 'stelle', 'vers', 'buch', 'thema'].includes(modeParam)) {
+		if (modeParam && ['gemischt', 'stelle', 'vers', 'buch', 'thema', 'werkstatt'].includes(modeParam)) {
 			mode = modeParam;
-			learningMode.set(mode);
+			if (mode !== 'werkstatt') learningMode.set(mode);
 		}
 		
 		await startLearning();
 	});
 
 	async function startLearning() {
+		if (mode === 'werkstatt') await werkstattAuffuellen();
 		const allVerses = await db.verse.toArray();
+		// Nur Verse in der Langzeit-Phase werden in Modus 1, 2, 4 und Gemischt wiederholt.
+		// Modus 3 (Buch/Kontext) bleibt für alle Verse offen, weil er beim Einprägen hilft.
+		const langzeitVerse = allVerses.filter(v => getPhase(v) === 'langzeit');
 		const morgen = new Date();
 		morgen.setHours(23, 59, 59, 999);
 
-		if (mode === 'buch') {
+		if (mode === 'werkstatt') {
+			const heute = allVerses.filter(werkstattHeuteFaellig);
+			if (heute.length === 0) {
+				const leer = allVerses.every(v => getPhase(v) !== 'lernen');
+				showToast(leer ? 'Die Werkstatt ist leer – füge neue Verse hinzu.' : 'Werkstatt für heute geschafft – morgen geht es weiter!');
+				setTimeout(() => goto('/'), 2000);
+				return;
+			}
+			queue = heute.sort((a, b) => a.id! - b.id!);
+			index = 0;
+			showTip = false;
+			showText = false;
+			currentVerse = queue[0];
+		} else if (mode === 'buch') {
 			// Gruppenlogik bestimmt intern welche Gruppen fällig sind
 			await prepareBookRanges(allVerses, morgen);
 			if (bookRanges.length === 0) {
@@ -107,7 +125,7 @@
 			// queue mit allen Versen der fälligen Gruppen befüllen
 			queue = bookRanges.flatMap(g => g.verses);
 		} else if (mode === 'thema') {
-			await prepareTagGroups(allVerses, morgen);
+			await prepareTagGroups(langzeitVerse, morgen);
 			if (tagGroups.length === 0) {
 				showToast('Heute keine Themen fällig – super gemacht!');
 				setTimeout(() => goto('/'), 2000);
@@ -116,7 +134,7 @@
 			queue = tagGroups.flatMap(g => g.verses);
 		} else {
 			// Modus 1, 2, Gemischt: pro Vers fällig prüfen
-			const faellig = allVerses.filter(v => {
+			const faellig = langzeitVerse.filter(v => {
 				if (mode === 'gemischt') {
 					const stelleDue = !v.nextReviewStelle || new Date(v.nextReviewStelle) <= morgen;
 					const versDue   = !v.nextReviewVers   || new Date(v.nextReviewVers)   <= morgen;
@@ -337,7 +355,29 @@
 
 		const isRelearning = !!currentVerse.relearning;
 		// For Gemischt-Modus, use the direction that was actually shown.
-		const effectiveMode = mode === 'gemischt' ? currentCardMode : (mode as 'stelle' | 'vers' | 'buch' | 'thema');
+		const effectiveMode = mode === 'gemischt' ? currentCardMode : (mode as 'stelle' | 'vers' | 'buch' | 'thema' | 'werkstatt');
+
+		if (effectiveMode === 'werkstatt') {
+			// Werkstatt: so lange in dieser Session wiederholen, bis der Vers wortgetreu sitzt
+			const bestanden = await werkstattBewerten(currentVerse.id!, grade);
+			if (grade < 4) {
+				const frisch = (await db.verse.get(currentVerse.id!)) ?? currentVerse;
+				queue = [...queue, { ...frisch, relearning: true }];
+			}
+			if (bestanden) showToast('Gelernt! Der Vers wechselt in die Langzeit-Wiederholung.');
+		} else if (effectiveMode === 'stelle') {
+			// Langzeit Modus 1 (Anki-Plan): kein Wiederholen in derselben Session,
+			// komplett Vergessenes geht zurück in die Werkstatt
+			const zurueck = await langzeitBewerten(currentVerse, grade);
+			if (zurueck) showToast('Zurück in die Werkstatt – dort lernst du ihn gezielt neu.');
+		} else {
+			await rateSM2(currentVerse, effectiveMode, grade, isRelearning);
+		}
+
+		nextCard();
+	}
+
+	async function rateSM2(currentVerse: Verse, effectiveMode: 'vers' | 'buch' | 'thema', grade: number, isRelearning: boolean) {
 		const modeKey = getModeKey(effectiveMode);
 		const vals = getModeValues(currentVerse, modeKey);
 
@@ -353,8 +393,9 @@
 				await db.verse.update(currentVerse.id!, buildModeUpdate(modeKey, result, vals.reviewCount, false));
 			}
 		}
+	}
 
-		// Next card
+	function nextCard() {
 		const newIndex = index + 1;
 		index = newIndex;
 
@@ -440,7 +481,7 @@
 	}
 
 	function goBack() {
-		if (mode === 'stelle' || mode === 'vers' || mode === 'gemischt') {
+		if (mode === 'stelle' || mode === 'vers' || mode === 'gemischt' || mode === 'werkstatt') {
 			if (index > 0) {
 				index--;
 				currentVerse = queue[index];
@@ -470,8 +511,9 @@
 
 <!-- Scroll-Boundary: verhindert dass Karten-Komponenten über den Viewport wachsen -->
 <div class="flex-1 overflow-hidden flex flex-col min-h-0">
-{#if mode === 'stelle' && currentVerse}
+{#if (mode === 'stelle' || mode === 'werkstatt') && currentVerse}
 	<LearningCard
+		werkstatt={mode === 'werkstatt'}
 		verse={currentVerse}
 		onRate={rate}
 		onShowTip={showTipp}

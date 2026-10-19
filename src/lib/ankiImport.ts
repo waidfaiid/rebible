@@ -2,6 +2,7 @@ import JSZip from 'jszip';
 import type { Verse } from '$lib/db';
 import { stelleNormalisieren, stripUnsichtbar } from '$lib/bible';
 import type { SqlJsStatic } from 'sql.js';
+import { decompress as zstdEntpacken } from 'fzstd';
 
 export interface UnresolvedCard {
 	rawStelle: string;
@@ -25,32 +26,34 @@ function stripHtml(html: string): string {
 		.trim();
 }
 
-function computeSrs(
-	type: number,
-	due: number,
-	ivl: number,
-	factor: number,
-	reps: number,
-	mod: number,
-	colCrt: number
-): Pick<Verse, 'interval' | 'easeFactor' | 'nextReview' | 'lastReview' | 'reviewCount'> {
-	const today = new Date().toISOString().slice(0, 10);
-	const rawFactor = factor === 0 ? 2500 : factor;
-	const easeFactor = Math.max(1.3, rawFactor / 1000.0);
-	const reviewCount = reps;
-	const lastReview = mod > 0 ? new Date(mod * 1000).toISOString().slice(0, 10) : today;
+interface AnkiKarte {
+	type: number;   // 0 = neu, 1 = lernen, 2 = wiederholen, 3 = neu lernen
+	queue: number;  // -1 = ausgesetzt
+	due: number;    // bei Wiederholungskarten: Tage seit Erstellung der Sammlung
+	ivl: number;    // Abstand in Tagen
+	factor: number; // Faktor in Promille (2500 = 2,5)
+	reps: number;   // Anzahl Wiederholungen
+	letzteWdh: number | null; // Zeitpunkt der letzten Wiederholung (ms, aus dem Wiederholungsprotokoll)
+}
 
-	if (type === 2 && ivl > 0) {
-		// Review card with positive interval: use Anki's due relative to col.crt
-		const effectiveDue = due < 0 ? 0 : due;
-		const nextReviewDate = new Date((colCrt + effectiveDue * 86400) * 1000);
-		const nextReview = nextReviewDate.toISOString().slice(0, 10);
-		return { interval: ivl, easeFactor, nextReview, lastReview, reviewCount };
-	}
+// Lernstand einer Anki-Karte in die Felder eines Modus übersetzen (Suffix z. B. 'Stelle').
+function ankiFortschritt(k: AnkiKarte, colCrt: number, suffix: string): Record<string, unknown> {
+	const jetzt = new Date().toISOString();
+	const istWiederholung = k.type === 2 && k.ivl > 0;
+	return {
+		[`easeFactor${suffix}`]: Math.max(1.3, (k.factor > 0 ? k.factor : 2500) / 1000),
+		[`interval${suffix}`]: Math.max(0, k.ivl),
+		[`nextReview${suffix}`]: istWiederholung ? new Date((colCrt + Math.max(0, k.due) * 86400) * 1000).toISOString() : jetzt,
+		[`lastReview${suffix}`]: k.letzteWdh ? new Date(k.letzteWdh).toISOString() : undefined,
+		[`reviewCount${suffix}`]: k.reps
+	};
+}
 
-	// New (0), learning (1), relearning (3), or review with negative ivl
-	const interval = type === 2 && ivl < 0 ? 0 : type === 3 ? 1 : 0;
-	return { interval, easeFactor, nextReview: today, lastReview, reviewCount };
+// Anki-Zustand → Lernphase: ausgesetzt/neu → Warteliste, (neu) lernen → Werkstatt, wiederholen → Langzeit
+function ankiPhase(k: AnkiKarte): 'neu' | 'lernen' | 'langzeit' {
+	if (k.queue === -1 || k.type === 0) return 'neu';
+	if (k.type === 2 && k.ivl > 0) return 'langzeit';
+	return 'lernen';
 }
 
 type InitSqlJs = (config: object) => Promise<SqlJsStatic>;
@@ -84,20 +87,23 @@ export async function parseAnkiFile(
 	const arrayBuffer = await file.arrayBuffer();
 	const zip = await JSZip.loadAsync(arrayBuffer);
 
-	// Prefer .anki21 over .anki2
-	const dbFile =
-		zip.file('collection.anki21') ?? zip.file('collection.anki2');
-	if (!dbFile) {
+	onProgress('Lese Datenbank...');
+	// Neuere Exporte (.anki21b) sind zstd-komprimiert; ältere liegen als .anki21/.anki2 vor
+	const neuesFormat = zip.file('collection.anki21b');
+	const altesFormat = zip.file('collection.anki21') ?? zip.file('collection.anki2');
+	let dbBytes: Uint8Array;
+	if (neuesFormat) {
+		dbBytes = zstdEntpacken(new Uint8Array(await neuesFormat.async('arraybuffer')));
+	} else if (altesFormat) {
+		dbBytes = new Uint8Array(await altesFormat.async('arraybuffer'));
+	} else {
 		throw new Error('Keine gültige Anki-Datenbank in der Datei gefunden.');
 	}
-
-	onProgress('Lese Datenbank...');
-	const dbBuffer = await dbFile.async('arraybuffer');
 
 	// Load sql.js from static/ as a plain script tag to bypass bundler issues
 	const SQL = await loadSqlJs();
 
-	const db = new SQL.Database(new Uint8Array(dbBuffer));
+	const db = new SQL.Database(dbBytes);
 
 	// Read collection creation timestamp (Anki-Epoch)
 	const colResult = db.exec('SELECT crt FROM col LIMIT 1');
@@ -105,21 +111,15 @@ export async function parseAnkiFile(
 
 	onProgress('Lese Karten...');
 
-	// Join notes with their first card (GROUP BY notes.id picks one card per note)
+	// Alle Karten je Notiz: Karte 0 = Stelle → Text (Modus 1), Karte 1 = Text → Stelle (Modus 2)
 	const result = db.exec(`
 		SELECT
-			n.flds,
-			n.tags,
-			n.mod,
-			c.type,
-			c.due,
-			c.ivl,
-			c.factor,
-			c.reps,
-			c.lapses
+			n.id, n.flds, n.tags,
+			c.ord, c.type, c.queue, c.due, c.ivl, c.factor, c.reps,
+			(SELECT MAX(r.id) FROM revlog r WHERE r.cid = c.id)
 		FROM notes n
 		JOIN cards c ON c.nid = n.id
-		GROUP BY n.id
+		ORDER BY n.id, c.ord
 	`);
 
 	db.close();
@@ -128,17 +128,22 @@ export async function parseAnkiFile(
 		return { recognized: [], unrecognized: [] };
 	}
 
-	const rows = result[0].values;
-	onProgress(`${rows.length} Karten gefunden – verarbeite...`);
+	// Zeilen nach Notiz zusammenfassen
+	const notizen = new Map<number, { flds: string; tags: string; karten: Map<number, AnkiKarte> }>();
+	for (const row of result[0].values) {
+		const [nid, flds, tags, ord, type, queue, due, ivl, factor, reps, letzteWdh] = row as [
+			number, string, string, number, number, number, number, number, number, number, number | null
+		];
+		if (!notizen.has(nid)) notizen.set(nid, { flds, tags, karten: new Map() });
+		notizen.get(nid)!.karten.set(ord, { type, queue, due, ivl, factor, reps, letzteWdh });
+	}
+
+	onProgress(`${notizen.size} Karten gefunden – verarbeite...`);
 
 	const recognized: Omit<Verse, 'id'>[] = [];
 	const unrecognized: UnresolvedCard[] = [];
 
-	for (const row of rows) {
-		const [flds, tagsRaw, mod, type, due, ivl, factor, reps] = row as [
-			string, string, number, number, number, number, number, number
-		];
-
+	for (const { flds, tags: tagsRaw, karten } of notizen.values()) {
 		const fields = flds.split('\x1f');
 		const rawStelle = stripUnsichtbar(stripHtml(fields[0] ?? ''));
 		const text = stripHtml(fields[1] ?? '');
@@ -147,7 +152,23 @@ export async function parseAnkiFile(
 			.map((t: string) => t.trim())
 			.filter((t: string) => t.length > 0);
 
-		const srs = computeSrs(type, due, ivl, factor, reps, mod, colCrt);
+		// Hauptkarte (Stelle → Text); fehlt sie, die erste vorhandene Karte nehmen
+		const haupt = karten.get(0) ?? karten.values().next().value!;
+		const umgekehrt = karten.get(1);
+		const stelleFelder = ankiFortschritt(haupt, colCrt, 'Stelle');
+
+		const srs = {
+			// Alte Felder als Spiegel von Modus 1
+			interval: stelleFelder.intervalStelle as number,
+			easeFactor: stelleFelder.easeFactorStelle as number,
+			nextReview: stelleFelder.nextReviewStelle as string,
+			lastReview: stelleFelder.lastReviewStelle as string | undefined,
+			reviewCount: stelleFelder.reviewCountStelle as number,
+			...stelleFelder,
+			...(umgekehrt ? ankiFortschritt(umgekehrt, colCrt, 'Vers') : {}),
+			phase: ankiPhase(haupt),
+			lernErfolge: 0
+		} as Omit<Verse, 'stelle' | 'id' | 'text' | 'tags'>;
 
 		const normalizedStelle = stelleNormalisieren(rawStelle);
 

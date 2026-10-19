@@ -26,6 +26,11 @@ export interface Verse {
   lastReview?: string;
   reviewCount: number;
   relearning?: boolean;
+  // Lernphase des Verses: Warteliste → Werkstatt → Langzeit (siehe werkstatt.ts)
+  phase?: 'neu' | 'lernen' | 'langzeit';
+  // Werkstatt: an wie vielen verschiedenen Tagen wortgetreu gekonnt, und an welchem Tag zuletzt
+  lernErfolge?: number;
+  lernErfolgTag?: string;
   // Modus 1: Stelle → Text (Bibelstelle anzeigen, Verstext wiederholen)
   intervalStelle?: number;
   easeFactorStelle?: number;
@@ -120,6 +125,33 @@ export class ReBibleDB extends Dexie {
         const neuerName = MOSE_BUCH_UMBENENNUNG[book];
         if (neuerName) {
           verse.stelle = chapvers ? `${neuerName} ${chapvers}` : neuerName;
+        }
+      });
+    });
+
+    // Version 7: Lernphasen einführen.
+    // - Verse aus dem Anki-Import hatten nur die alten Felder → in die Modus-1-Felder übernehmen.
+    // - Sonst die alten Felder als Spiegel von Modus 1 nachziehen (für Versliste/Startseite).
+    // - Bereits wiederholte Verse kommen in die Langzeit, nie wiederholte auf die Warteliste.
+    this.version(7).stores({
+      verse: '++id, stelle, text, tags, interval, easeFactor, nextReview, lastReview, reviewCount, nextReviewStelle, nextReviewVers, nextReviewBuch, nextReviewThema'
+    }).upgrade(tx => {
+      return tx.table('verse').toCollection().modify((verse: Verse) => {
+        if (!verse.nextReviewStelle) {
+          verse.nextReviewStelle = verse.nextReview;
+          verse.intervalStelle = verse.interval;
+          verse.easeFactorStelle = verse.easeFactor;
+          verse.lastReviewStelle = verse.lastReview;
+          verse.reviewCountStelle = verse.reviewCount;
+        } else {
+          verse.nextReview = verse.nextReviewStelle;
+          verse.interval = verse.intervalStelle ?? verse.interval;
+          verse.easeFactor = verse.easeFactorStelle ?? verse.easeFactor;
+          verse.lastReview = verse.lastReviewStelle ?? verse.lastReview;
+          verse.reviewCount = verse.reviewCountStelle ?? verse.reviewCount;
+        }
+        if (!verse.phase) {
+          verse.phase = (verse.reviewCountStelle ?? 0) > 0 ? 'langzeit' : 'neu';
         }
       });
     });
