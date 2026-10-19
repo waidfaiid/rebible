@@ -14,6 +14,11 @@ Warteliste (neu) → Werkstatt (lernen) → Langzeit
    wiederholt, bis er wortgetreu sitzt. „Vergessen“ setzt die gesammelten Tage auf 0 zurück.
    Ist er **an 2 verschiedenen Tagen wortgetreu** gekonnt, wechselt er in die Langzeit
    (erste Wiederholung nach 3 Tagen).
+   **Kontext-Runde:** Jede Werkstatt-Sitzung beginnt mit den Kapitelbereichen (wie Modus 3), in denen
+   ein heutiger Werkstatt-Vers steht, z. B. „Römer 6–8“: Versnummern und erste Satzteile aufsagen,
+   aufdecken, weiter. Schon gelernte Nachbarverse sind dabei, Werkstatt-Verse sind markiert.
+   Die Kontext-Runde ist reines Üben und verändert den Plan von Modus 3 nicht. Danach folgen die
+   Werkstatt-Verse einzeln im Wortlaut.
 3. **Langzeit** – Wiederholung nach dem Anki-Prinzip (Startfaktor 2,5, mindestens 1,3):
 
 | Knopf | entspricht Anki | neuer Abstand | Faktor |
@@ -27,9 +32,9 @@ Wer zu spät wiederholt und den Vers trotzdem kann, bekommt die Verspätung (ant
 Ab 3 Tagen werden die Abstände um ±5 % gestreut, damit sich Verse nicht auf einzelne Tage ballen.
 
 Modus 2, 4 und „Tägliches Training“ zeigen nur Verse in der Langzeit-Phase.
-Modus 3 (Buch/Kontext) zeigt alle Verse, weil er beim Einprägen hilft.
+Modus 3 (Buch/Kontext) zeigt Werkstatt- und Langzeit-Verse (nicht die Warteliste), weil er beim Einprägen hilft.
 
-Code: `src/lib/werkstatt.ts`, `src/lib/spacedRepetition.ts` (`ankiLangzeit`).
+Code: `src/lib/werkstatt.ts`, `src/lib/kontextGruppen.ts`, `src/lib/spacedRepetition.ts` (`ankiLangzeit`).
 
 ## Anki-Import
 
